@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Your prescription &mdash; RxPlain{% endblock %}
+
+{% block main %}
+<h1>Your prescription</h1>
+
+<div role="status" aria-live="polite" class="summary">
+  <p>
+    {{ guide.medications | length }} medicine{{ '' if guide.medications | length == 1 else 's' }}
+    confirmed.
+    {% if guide.unverified %}
+    {{ guide.unverified | length }} item{{ '' if guide.unverified | length == 1 else 's' }}
+    could not be confirmed.
+    {% endif %}
+  </p>
+</div>
+
+{% if guide.medications %}
+<section aria-labelledby="confirmed-heading">
+  <h2 id="confirmed-heading">Medicines we could confirm</h2>
+
+  {% for medication in guide.medications %}
+  <article class="medication" aria-labelledby="med-{{ loop.index }}-heading">
+    <h3 id="med-{{ loop.index }}-heading" lang="en">{{ medication.display_name }}</h3>
+
+    <p class="rxnorm-badge">
+      <span class="label-strong">RxNorm code:</span> {{ medication.rxcui }}
+      <span class="match-tier">(matched: {{ medication.match_tier }})</span>
+    </p>
+
+    <ul class="sentences">
+      {% for sentence in medication.sentences %}
+      <li>
+        <p class="sentence">{{ sentence.text }}</p>
+        <details class="source">
+          <summary>Where this came from</summary>
+          <dl>
+            <dt>Source</dt>
+            <dd>
+              {% if sentence.provenance.source == 'ocr_span' %}
+              Read from your prescription
+              {% elif sentence.provenance.source == 'rxnorm' %}
+              RxNorm, the US National Library of Medicine drug list
+              {% else %}
+              openFDA drug label
+              {% endif %}
+            </dd>
+            <dt>Reference</dt>
+            <dd><code>{{ sentence.provenance.source }}:{{ sentence.provenance.ref }}</code></dd>
+            <dt>Original text</dt>
+            <dd><q class="snippet">{{ sentence.source_text }}</q></dd>
+          </dl>
+        </details>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <details class="source">
+      <summary>The whole line as it was read from your prescription</summary>
+      <p><q class="snippet">{{ medication.prescription_text }}</q></p>
+    </details>
+
+    {% if medication.quotes %}
+    <h4>What the official label says</h4>
+    <p class="note">
+      Quoted word for word from the manufacturer's label published by the US Food
+      and Drug Administration. RxPlain does not reword it.
+    </p>
+    {% for quote in medication.quotes %}
+    <details class="label-quote">
+      <summary>{{ quote.title }}</summary>
+      <blockquote cite="{{ quote.source_url }}">
+        <p>{{ quote.text }}</p>
+      </blockquote>
+      <p class="provenance-line">
+        <span class="label-strong">Source:</span>
+        <code>{{ quote.provenance.source }}:{{ quote.provenance.ref }}</code>
+        &mdash; <a href="{{ quote.source_url }}" rel="noreferrer noopener">view this label</a>
+      </p>
+    </details>
+    {% endfor %}
+    {% else %}
+    <p class="note">
+      No official label could be confirmed for this medicine, so none is shown.
+    </p>
+    {% endif %}
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if guide.unverified %}
+<section aria-labelledby="unconfirmed-heading">
+  <h2 id="unconfirmed-heading">Items we could not confirm</h2>
+  <p>
+    RxPlain will not guess. For each item below, ask your pharmacist rather than
+    relying on anything here.
+  </p>
+
+  {% for item in guide.unverified %}
+  <article class="unverified">
+    <h3>
+      <span class="status-word">Not verified</span>
+    </h3>
+    <p class="ask-pharmacist">{{ item.message }}</p>
+    <details class="source">
+      <summary>What was read from your prescription</summary>
+      <dl>
+        <dt>Original text</dt>
+        <dd><q class="snippet">{{ item.raw_text }}</q></dd>
+        <dt>Reason</dt>
+        <dd>
+          {% if item.reason == 'low_confidence_tokens' %}
+          Part of this line did not scan clearly enough to trust.
+          {% elif item.reason == 'rxnorm_unresolved' %}
+          This medicine name is not in RxNorm, so it could not be confirmed.
+          {% elif item.reason == 'dose_not_traceable' %}
+          The strength could not be matched to the text on the page.
+          {% else %}
+          The instructions could not be matched to the text on the page.
+          {% endif %}
+        </dd>
+        <dt>Reference</dt>
+        <dd><code>ocr_span:{{ item.line_span.span_id }}</code></dd>
+      </dl>
+    </details>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section aria-labelledby="scan-heading" class="scan-quality">
+  <h2 id="scan-heading">Scan quality</h2>
+  <dl>
+    <dt>Average confidence</dt>
+    <dd>{{ (report.mean_confidence * 100) | round | int }}%</dd>
+    <dt>Words read</dt>
+    <dd>{{ report.token_count }}</dd>
+    <dt>Words flagged as unclear</dt>
+    <dd>{{ report.low_confidence_token_ids | length }}</dd>
+  </dl>
+</section>
+
+<p><a href="/" class="button-secondary">Read another prescription</a></p>
+{% endblock %}

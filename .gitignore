@@ -12,6 +12,11 @@ venv/
 build/
 dist/
 
+# Mutation testing sandbox
+mutants/
+.mutmut-cache
+mutmut-stats.json
+
 # Tooling caches
 .mypy_cache/
 .pytest_cache/
@@ -20,6 +25,9 @@ dist/
 .coverage.*
 coverage.xml
 htmlcov/
+
+# Node tooling
+node_modules/
 
 # OS
 .DS_Store

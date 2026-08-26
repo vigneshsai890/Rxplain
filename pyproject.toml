@@ -4,22 +4,30 @@ version = "0.1.0"
 description = "RxPlain - medication-literacy tool."
 requires-python = "==3.12.*"
 dependencies = [
+    "anyio==4.14.2",
     "fastapi==0.141.1",
+    "httpx2==2.12.0",
+    "jinja2==3.1.6",
+    "psycopg[binary,pool]==3.3.4",
     "pydantic==2.13.4",
     "pydantic-settings==2.15.0",
+    "python-multipart==0.0.32",
+    "rapidfuzz==3.14.5",
     "structlog==26.1.0",
     "uvicorn[standard]==0.52.4",
 ]
 
 [project.optional-dependencies]
 dev = [
-    # starlette >=1.6 deprecates httpx for TestClient in favour of httpx2.
-    "httpx2==2.12.0",
+    "hypothesis==6.165.10",
+    "mutmut==3.7.0",
     "mypy==2.3.1",
+    "pillow==12.3.0",
     "pip-audit==2.10.1",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
     "ruff==0.16.4",
+    "textstat==0.7.13",
 ]
 
 [build-system]
@@ -81,7 +89,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "PLR2004"]
+# Blocking file reads are correct and clearer in a test body.
+"tests/**/*.py" = ["S101", "PLR2004", "ASYNC240", "PLR0913", "S105", "S106"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -94,7 +103,7 @@ ban-relative-imports = "all"
 # --------------------------------------------------------------------------- #
 [tool.mypy]
 python_version = "3.12"
-files = ["app", "tests"]
+files = ["app", "scripts", "tests"]
 strict = true
 disallow_any_explicit = true
 warn_unreachable = true
@@ -109,6 +118,11 @@ enable_error_code = [
     "unused-awaitable",
 ]
 plugins = ["pydantic.mypy"]
+
+# textstat ships no type information; it is used only in tests.
+[[tool.mypy.overrides]]
+module = ["textstat.*"]
+ignore_missing_imports = true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
@@ -138,4 +152,28 @@ show_missing = true
 exclude_also = [
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
+]
+
+# --------------------------------------------------------------------------- #
+# mutmut - mutation testing on the safety layer
+# --------------------------------------------------------------------------- #
+# Only app/safety is mutated. These two modules decide what a patient is shown,
+# so a surviving mutant there is a missing test, not a style question.
+[tool.mutmut]
+# The whole package is copied into the sandbox so imports resolve, but only
+# app/safety is mutated: these two modules decide what a patient is shown, so a
+# surviving mutant there is a missing test rather than a style question.
+source_paths = ["app"]
+do_not_mutate = [
+    "app/__init__.py",
+    "app/config.py",
+    "app/db.py",
+    "app/main.py",
+    "app/adapters/*",
+    "app/domain/*",
+    "app/web/*",
+]
+pytest_add_cli_args_test_selection = [
+    "tests/unit/test_gates.py",
+    "tests/unit/test_verifier.py",
 ]

@@ -16,6 +16,30 @@ jobs:
   quality:
     name: lint, types, tests, audit
     runs-on: ubuntu-latest
+
+    # Integration tests resolve drug names against a real Postgres with pg_trgm.
+    # Without it those tests skip, which would hide a broken resolution ladder.
+    services:
+      postgres:
+        image: postgres:17.6-bookworm
+        env:
+          POSTGRES_DB: rxplain
+          POSTGRES_USER: rxplain
+          POSTGRES_PASSWORD: rxplain_local_dev
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U rxplain -d rxplain"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
+    env:
+      DATABASE_URL: postgresql://rxplain:rxplain_local_dev@127.0.0.1:55432/rxplain
+      # openFDA is a live third-party API. CI asserts the join logic with unit
+      # tests instead, so the build does not fail on someone else's outage.
+      OPENFDA_ENABLED: "false"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +54,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
+      - name: Apply migrations and load the RxNorm seed
+        run: python scripts/load_rxnorm.py load-seed
+
       - name: ruff (lint)
         run: ruff check --output-format=github .
 
@@ -43,8 +70,8 @@ jobs:
         run: pytest --cov --cov-report=term-missing --cov-report=xml
 
       # The safety-critical packages carry a hard floor. Enforced as a separate
-      # step so the number applies to app/domain and app/safety alone and
-      # cannot be propped up by coverage elsewhere in the tree.
+      # step so the number applies to app/domain and app/safety alone and cannot
+      # be propped up by coverage elsewhere in the tree.
       - name: coverage gate (app/domain + app/safety >= 85%)
         run: coverage report --include="app/domain/*,app/safety/*" --fail-under=85
 
@@ -53,3 +80,95 @@ jobs:
       # the local rxplain distribution (absent from PyPI by design).
       - name: pip-audit
         run: pip-audit --strict --progress-spinner=off .
+
+  mutation:
+    name: mutation testing (app/safety)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      # A surviving mutant in app/safety means a gate can be removed without a
+      # test noticing, so the run must kill every one.
+      - name: mutmut
+        run: |
+          mutmut run --max-children 4
+          mutmut results | tee results.txt
+          if grep -q ': survived' results.txt; then
+            echo "::error::a mutant survived in app/safety"
+            exit 1
+          fi
+          echo "all mutants killed"
+
+  accessibility:
+    name: axe-core (WCAG 2.1 AA)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17.6-bookworm
+        env:
+          POSTGRES_DB: rxplain
+          POSTGRES_USER: rxplain
+          POSTGRES_PASSWORD: rxplain_local_dev
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U rxplain -d rxplain"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
+    env:
+      DATABASE_URL: postgresql://rxplain:rxplain_local_dev@127.0.0.1:55432/rxplain
+      # The audit only needs the pages to render; label quotes are not required
+      # for any WCAG rule, so a third-party outage must not fail this gate.
+      OPENFDA_ENABLED: "false"
+      RXPLAIN_URL: http://127.0.0.1:8080
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tools/axe/package-lock.json
+
+      - name: Install the application
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Load the RxNorm seed
+        run: pip install -e ".[dev]" && python scripts/load_rxnorm.py load-seed
+
+      # puppeteer downloads a Chrome build matched to its own version, so the
+      # driver and browser cannot drift apart the way a system Chrome would.
+      - name: Install audit tooling
+        working-directory: tools/axe
+        run: npm ci
+
+      - name: Start the application
+        run: |
+          uvicorn app.main:app --host 127.0.0.1 --port 8080 &
+          for _ in $(seq 1 40); do
+            curl -fsS -o /dev/null "$RXPLAIN_URL/healthz" && break
+            sleep 1
+          done
+          curl -fsS "$RXPLAIN_URL/healthz"
+
+      - name: axe-core audit
+        run: node tools/axe/audit.mjs

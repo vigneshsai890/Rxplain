@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Upload a prescription &mdash; RxPlain{% endblock %}
+
+{% block main %}
+<h1>Upload a prescription</h1>
+
+<p class="lede">
+  RxPlain reads the medicine names, strengths and instructions from your
+  prescription. It checks every name against a drug list from the US National
+  Library of Medicine. If it cannot confirm something, it says so instead of
+  guessing.
+</p>
+
+<form action="/guide" method="post" enctype="multipart/form-data" novalidate>
+  <div class="field">
+    <label for="prescription">Prescription photo or PDF</label>
+    <p class="hint" id="prescription-hint">
+      PNG, JPEG or PDF, up to {{ max_mb }} MB. The file contents are checked, so
+      renaming a file does not change how it is read.
+    </p>
+    {% if error %}
+    <p class="field-error" id="prescription-error">
+      <span class="label-strong">Problem:</span> {{ error }}
+    </p>
+    {% endif %}
+    <input
+      type="file"
+      id="prescription"
+      name="prescription"
+      accept="image/png,image/jpeg,application/pdf"
+      required
+      aria-describedby="prescription-hint{% if error %} prescription-error{% endif %}"
+      {% if error %}aria-invalid="true"{% endif %}
+    />
+  </div>
+
+  <button type="submit" class="button-primary">Read my prescription</button>
+</form>
+
+<section aria-labelledby="samples-heading" class="samples">
+  <h2 id="samples-heading">Try it with a sample</h2>
+  <p>
+    This build reads prescriptions from a fixed set of committed samples, because
+    it has no credentials for a hosted OCR service. Download one and upload it
+    unchanged to see the whole pipeline run.
+  </p>
+  <ul class="sample-list">
+    {% for sample in samples %}
+    <li>
+      <a href="/samples/{{ sample.stem }}" download>{{ sample.label }}</a>
+      <span class="sample-file">({{ sample.name }})</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="note">
+    Every sample is marked <em>SAMPLE &mdash; NOT A REAL PRESCRIPTION</em>. They
+    are test documents, not prescriptions for anyone.
+  </p>
+</section>
+{% endblock %}

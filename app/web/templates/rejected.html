@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}We could not read that scan &mdash; RxPlain{% endblock %}
+
+{% block main %}
+<h1>We could not read that scan</h1>
+
+<div role="status" aria-live="polite" class="rejected">
+  <p class="ask-pharmacist">
+    <span class="status-word">Stopped</span>
+    RxPlain read this scan too poorly to be sure of anything on it, so it is not
+    showing you a guide at all. A wrong strength is worse than no strength.
+  </p>
+</div>
+
+<section aria-labelledby="why-heading">
+  <h2 id="why-heading">Why it stopped</h2>
+  <dl>
+    <dt>Average confidence in this scan</dt>
+    <dd>{{ mean_percent }}%</dd>
+    <dt>Minimum needed</dt>
+    <dd>{{ threshold_percent }}%</dd>
+    <dt>Words read</dt>
+    <dd>{{ report.token_count }}</dd>
+  </dl>
+</section>
+
+<section aria-labelledby="next-heading">
+  <h2 id="next-heading">What to do next</h2>
+  <ul>
+    <li>Take the photo again in brighter, even light.</li>
+    <li>Hold the camera square to the page so the text is not slanted.</li>
+    <li>Fill the frame with the label and keep it in focus.</li>
+    <li>If it still will not read, ask your pharmacist to go through it with you.</li>
+  </ul>
+</section>
+
+<p><a href="/" class="button-secondary">Try another photo</a></p>
+{% endblock %}

@@ -28,7 +28,11 @@ FROM python:3.12-slim-bookworm AS runtime
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8080
+    PORT=8080 \
+    OCR_FIXTURE_DIR=/srv/golden/ocr \
+    SAMPLE_PRESCRIPTION_DIR=/srv/golden/prescriptions \
+    MIGRATIONS_DIR=/srv/migrations \
+    RXNORM_SEED_PATH=/srv/migrations/seed/rxnorm_seed.json
 
 RUN groupadd --system --gid 10001 rxplain \
  && useradd --system --uid 10001 --gid 10001 \
@@ -36,8 +40,18 @@ RUN groupadd --system --gid 10001 rxplain \
 
 COPY --from=builder /opt/venv /opt/venv
 
-# /srv is empty on purpose: keeping the working directory clear of a directory
-# named `app` removes any chance of shadowing the installed package.
+# The golden fixtures are runtime data for this build, not just test data: the
+# OCR client replays them, and the upload page offers them for download. They
+# live under tests/ because that is where the specification puts them, so they
+# are copied explicitly rather than by shipping the whole test suite.
+COPY tests/golden/ocr /srv/golden/ocr
+COPY tests/golden/prescriptions /srv/golden/prescriptions
+
+# Applied at startup, so the schema is present before the first request.
+COPY migrations /srv/migrations
+
+# /srv holds only data. Keeping the working directory clear of a directory named
+# `app` removes any chance of shadowing the installed package.
 WORKDIR /srv
 USER 10001:10001
 EXPOSE 8080

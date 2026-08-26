@@ -13,6 +13,10 @@ __pycache__/
 build/
 dist/
 
+tools/
+node_modules/
+mutants/
+.mutmut-cache
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
@@ -21,8 +25,11 @@ dist/
 coverage.xml
 htmlcov/
 
-tests/
-migrations/
+# tests/golden and migrations are runtime data, so they are not excluded.
+tests/unit/
+tests/integration/
+tests/conftest.py
+tests/__init__.py
 Dockerfile
 .dockerignore
 .DS_Store

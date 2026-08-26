@@ -1,0 +1,1 @@
+{"document_id":"4b93896c54cdb90a07b58597741e9d4206be54d5f1f7cdc17a094fa7a59d786b","token_count":15,"mean_confidence":0.6393333333333333,"mean_confidence_threshold":0.8,"token_confidence_threshold":0.6,"low_confidence_token_ids":["p1-t001","p1-t003","p1-t013"],"rejection_reason":"mean_confidence_below_threshold"}

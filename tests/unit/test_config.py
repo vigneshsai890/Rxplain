@@ -30,9 +30,49 @@ def test_defaults_are_safe() -> None:
     assert settings.app_env == "local"
     assert settings.log_level == "INFO"
     assert settings.port == 8080
-    assert settings.content_security_policy == "default-src 'self'"
+    assert settings.content_security_policy.startswith("default-src 'self'")
     assert settings.hsts_max_age_seconds == 63_072_000
     assert settings.referrer_policy == "no-referrer"
+
+
+def test_default_csp_has_no_unsafe_directives() -> None:
+    """Guards against a future edit loosening the policy."""
+    policy = Settings().content_security_policy
+    for forbidden in ("unsafe-inline", "unsafe-eval", "default-src *", "script-src *"):
+        assert forbidden not in policy
+
+
+def test_default_safety_thresholds_match_the_specification() -> None:
+    """The gate and traceability thresholds ship at their documented values."""
+    settings = Settings()
+    assert settings.ocr_min_mean_confidence == 0.80
+    assert settings.ocr_min_token_confidence == 0.60
+    assert settings.verbatim_min_similarity == 0.90
+    assert settings.max_upload_bytes == 10 * 1024 * 1024
+
+
+@pytest.mark.parametrize("value", ["0.89", "0.5", "0.0"])
+def test_verbatim_similarity_cannot_be_loosened(
+    value: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Operator error may only tighten verbatim matching, never weaken it."""
+    monkeypatch.setenv("VERBATIM_MIN_SIMILARITY", value)
+    with pytest.raises(ValidationError):
+        Settings()
+
+
+def test_verbatim_similarity_can_be_tightened(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Values above the floor are accepted."""
+    monkeypatch.setenv("VERBATIM_MIN_SIMILARITY", "0.97")
+    assert Settings().verbatim_min_similarity == 0.97
+
+
+def test_database_url_is_not_printable() -> None:
+    """The connection string embeds a password, so it must stay redacted."""
+    settings = Settings()
+    assert "rxplain_local_dev" not in repr(settings)
+    assert "rxplain_local_dev" not in str(settings)
+    assert settings.database_url.get_secret_value().startswith("postgresql://")
 
 
 def test_env_example_declares_only_real_fields() -> None:
@@ -42,18 +82,22 @@ def test_env_example_declares_only_real_fields() -> None:
     assert {key.lower() for key in _example_keys()} <= declared
 
 
+def test_env_example_documents_every_field() -> None:
+    """A new setting must be documented, not left for someone to discover."""
+    documented = {key.lower() for key in _example_keys()}
+    assert set(Settings.model_fields) <= documented
+
+
 def test_env_example_is_loadable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The committed example file validates as-is when copied to ``.env``."""
-    shutil.copyfile(ENV_EXAMPLE, tmp_path / ".env")
+    """The example file parses and is a faithful transcription of the defaults.
+
+    Comparing against ``Settings()`` rather than a hardcoded list means adding a
+    setting without documenting it in ``.env.example`` fails here.
+    """
     monkeypatch.chdir(tmp_path)
-    assert Settings() == Settings(
-        app_env="local",
-        log_level="INFO",
-        port=8080,
-        content_security_policy="default-src 'self'",
-        hsts_max_age_seconds=63_072_000,
-        referrer_policy="no-referrer",
-    )
+    defaults = Settings()
+    shutil.copyfile(ENV_EXAMPLE, tmp_path / ".env")
+    assert Settings() == defaults
 
 
 def test_environment_overrides_defaults(monkeypatch: pytest.MonkeyPatch) -> None:

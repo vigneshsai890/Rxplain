@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}RxPlain{% endblock %}</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="banner">
+      <p class="wordmark"><span aria-hidden="true">Rx</span><span class="sr-only">RxPlain</span>Plain</p>
+      <p class="tagline">Read your prescription in plain language</p>
+    </header>
+
+    <main id="main" tabindex="-1">
+      {% block main %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <h2>Not medical advice</h2>
+      <p>
+        RxPlain only repeats what is on your prescription and on the official drug
+        label. It does not give medical advice. It cannot tell you if a medicine is
+        right for you. Always follow what your doctor or pharmacist tells you.
+      </p>
+      <p>
+        If something here does not match your bottle, do not change how you take
+        your medicine. Ask your pharmacist.
+      </p>
+      <p>In an emergency, call your local emergency number. In the US that is 911.</p>
+    </footer>
+  </body>
+</html>

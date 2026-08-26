@@ -1,0 +1,14 @@
+{
+  "name": "rxplain-axe",
+  "private": true,
+  "version": "0.1.0",
+  "description": "axe-core accessibility gate for RxPlain",
+  "type": "module",
+  "scripts": {
+    "audit": "node audit.mjs"
+  },
+  "dependencies": {
+    "axe-core": "4.10.2",
+    "puppeteer": "24.28.0"
+  }
+}

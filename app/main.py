@@ -2,14 +2,30 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 
+import structlog
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 
+from app.adapters.extract import RuleBasedExtractor
+from app.adapters.ocr import DeterministicFakeOcr
+from app.adapters.openfda import NullOpenFdaClient, OpenFdaClient, PostgresCachedOpenFdaClient
+from app.adapters.rxnorm import PostgresRxNormResolver
+from app.adapters.rxnorm_seed import seed_if_empty
 from app.config import AppEnv, Settings, get_settings
+from app.db import Database
 from app.web.logging import configure_logging
 from app.web.middleware import RequestIdMiddleware, SecurityHeadersMiddleware
+from app.web.routes import Services, router
+
+_LOGGER = structlog.stdlib.get_logger("app.main")
+
+STATIC_DIR = Path(__file__).resolve().parent / "web" / "static"
 
 
 class HealthResponse(BaseModel):
@@ -28,10 +44,41 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings: Configuration to use. Defaults to the process singleton.
 
     Returns:
-        An application with logging and middleware already wired.
+        An application with logging, middleware and routes wired.
     """
     resolved = settings if settings is not None else get_settings()
     configure_logging(resolved.log_level)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        """Open the database, build the services, and tear them down after."""
+        database = Database(resolved)
+        await database.open()
+        await database.apply_migrations()
+        # A container with an empty database would resolve nothing and report
+        # every drug as unverified, so the committed seed is loaded on first run.
+        await seed_if_empty(database, resolved.rxnorm_seed_path)
+        openfda: OpenFdaClient = (
+            PostgresCachedOpenFdaClient(database, resolved)
+            if resolved.openfda_enabled
+            else NullOpenFdaClient()
+        )
+        app.state.services = Services(
+            settings=resolved,
+            ocr=DeterministicFakeOcr(resolved.ocr_fixture_dir),
+            extractor=RuleBasedExtractor(),
+            resolver=PostgresRxNormResolver(database, resolved),
+            openfda=openfda,
+        )
+        _LOGGER.info(
+            "startup_complete",
+            environment=resolved.app_env,
+            openfda_enabled=resolved.openfda_enabled,
+        )
+        try:
+            yield
+        finally:
+            await database.close()
 
     # The interactive docs load Swagger/ReDoc assets from a CDN, which
     # `default-src 'self'` blocks. Serving a permanently broken page would be
@@ -41,12 +88,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version="0.1.0",
         docs_url=None,
         redoc_url=None,
+        lifespan=lifespan,
     )
 
     # add_middleware prepends, so the last registered runs outermost: the
     # correlation ID is bound before any other layer can log.
     app.add_middleware(SecurityHeadersMiddleware, settings=resolved)
     app.add_middleware(RequestIdMiddleware)
+
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    app.include_router(router)
 
     @app.get("/healthz", response_model=HealthResponse, summary="Liveness probe")
     async def healthz() -> HealthResponse:

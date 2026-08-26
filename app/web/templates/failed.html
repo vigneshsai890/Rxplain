@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}We could not show a guide &mdash; RxPlain{% endblock %}
+
+{% block main %}
+<h1>We could not show a guide</h1>
+
+<div role="status" aria-live="polite" class="rejected">
+  <p class="ask-pharmacist">
+    <span class="status-word">Stopped</span>
+    RxPlain built a guide for this prescription, then checked every line against
+    the text it came from. A line did not hold up, so the whole guide was thrown
+    away rather than shown to you. Please ask your pharmacist to read this
+    prescription with you.
+  </p>
+</div>
+
+<section aria-labelledby="detail-heading">
+  <h2 id="detail-heading">What the check found</h2>
+  <dl>
+    <dt>Result</dt>
+    <dd>{{ rejection.detail }}</dd>
+    <dt>Attempts</dt>
+    <dd>{{ rejection.attempts }}</dd>
+  </dl>
+</section>
+
+<p><a href="/" class="button-secondary">Start again</a></p>
+{% endblock %}

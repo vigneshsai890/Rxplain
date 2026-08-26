@@ -9,7 +9,7 @@ from app.config import Settings
 from app.main import create_app
 
 EXPECTED_HEADERS = {
-    "content-security-policy": "default-src 'self'",
+    "content-security-policy": "default-src 'self'; img-src 'self' data:; form-action 'self'",
     "referrer-policy": "no-referrer",
     "strict-transport-security": "max-age=63072000; includeSubDomains",
     "x-content-type-options": "nosniff",
