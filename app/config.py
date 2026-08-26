@@ -85,6 +85,12 @@ class Settings(BaseSettings):
     # Trigram similarity required by the RxNorm approximate-match tier.
     rxnorm_min_similarity: float = Field(default=0.85, ge=0.50, le=1.0)
 
+    # --- sign-in ------------------------------------------------------------
+    # Both unset means sign-in is off and no session cookie is ever issued, which
+    # keeps the anonymous, zero-retention path as the default.
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: SecretStr | None = None
+
     # --- rate limiting ------------------------------------------------------
     # /guide triggers a transcription that can take ~45s, so an unauthenticated
     # caller can amplify cost heavily. These are per-client-IP.
