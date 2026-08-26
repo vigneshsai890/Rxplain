@@ -374,3 +374,121 @@ blockquote {
 .scan-quality dd {
   margin: 0;
 }
+
+/* --------------------------------------------------------------------------
+ * Mobile and accessibility preferences.
+ *
+ * The layout above is a single column with a max-width, so it already reflows;
+ * these rules handle what reflow alone does not: touch target size, avoiding
+ * horizontal scroll from long unbroken strings (RxCUIs, span ids, label prose),
+ * and honouring the user's own contrast and motion settings.
+ * ----------------------------------------------------------------------- */
+
+/* WCAG 2.1 AA "Reflow" (1.4.10): no horizontal scrolling at 320px. Long refs
+ * and label text are the realistic offenders. */
+code,
+.snippet,
+blockquote p,
+.sample-file {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 40rem) {
+  body {
+    /* 1.0625rem is comfortable on a laptop but tight on a phone held at arm's
+     * length, which is how an older user reads this. */
+    font-size: 1.125rem;
+  }
+
+  main,
+  .site-footer {
+    padding: 1rem;
+  }
+
+  .banner {
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 1.625rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  /* WCAG 2.1 AA "Target Size" is AAA, but a 48px target is the practical floor
+   * for a shaky hand on a small screen, so it is applied anyway. */
+  .button-primary,
+  .button-secondary,
+  details summary,
+  input[type="file"] {
+    min-height: 48px;
+    width: 100%;
+  }
+
+  .button-primary,
+  .button-secondary {
+    text-align: center;
+    padding: 0.875rem 1rem;
+  }
+
+  details summary {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+  }
+
+  .medication,
+  .unverified {
+    padding: 0.875rem 1rem;
+  }
+
+  /* Two columns become one so nothing is squeezed into a few characters. */
+  .scan-quality dl {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .scan-quality dt {
+    margin-top: 0.5rem;
+  }
+
+  details dd {
+    margin-left: 0;
+  }
+}
+
+/* Honour a user's system contrast preference rather than offering a bespoke
+ * toggle that their OS setting would then disagree with. */
+@media (prefers-contrast: more) {
+  :root {
+    --ink: #000000;
+    --muted-ink: #1a1d21;
+    --link: #00408c;
+    --rule: #000000;
+    --panel: #ffffff;
+    --warn-ink: #4a2200;
+    --stop-ink: #6b0000;
+  }
+
+  .medication,
+  details.source,
+  details.label-quote,
+  input[type="file"] {
+    border-width: 2px;
+    border-color: var(--rule);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

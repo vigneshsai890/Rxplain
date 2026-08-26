@@ -85,6 +85,22 @@ class Settings(BaseSettings):
     # Trigram similarity required by the RxNorm approximate-match tier.
     rxnorm_min_similarity: float = Field(default=0.85, ge=0.50, le=1.0)
 
+    # --- transcription ------------------------------------------------------
+    # When no key is set the fixture replayer is used, so the app still runs
+    # offline. Setting a key switches the OCR seam to the hosted vision model.
+    nvidia_api_key: SecretStr | None = None
+    nvidia_base_url: str = Field(default="https://integrate.api.nvidia.com/v1", min_length=1)
+    nvidia_vision_model: str = Field(default="meta/llama-3.2-11b-vision-instruct", min_length=1)
+    nvidia_text_model: str = Field(default="mistralai/mistral-nemotron", min_length=1)
+    # Observed latency for an 11B vision call is ~45s, so the ceiling is generous.
+    nvidia_timeout_seconds: float = Field(default=120.0, gt=0.0, le=300.0)
+
+    # Confidence assigned to vision-transcribed words. These are not measured
+    # values: the model marks words it is unsure of, and the unsure figure sits
+    # below ocr_min_token_confidence so the existing per-token gate flags them.
+    vision_confident_token_confidence: float = Field(default=0.90, ge=0.0, le=1.0)
+    vision_unsure_token_confidence: float = Field(default=0.45, ge=0.0, le=1.0)
+
     # --- openFDA ------------------------------------------------------------
     openfda_base_url: str = Field(default="https://api.fda.gov", min_length=1)
     openfda_timeout_seconds: float = Field(default=20.0, gt=0.0, le=120.0)

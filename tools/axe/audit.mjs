@@ -37,6 +37,15 @@ const PRESCRIPTIONS = resolve(
 // tracks the conformance target rather than shifting advice.
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
+// 320px is the width WCAG 2.1 "Reflow" (1.4.10) names explicitly. The rest cover
+// a common phone, a tablet and a laptop.
+const VIEWPORTS = [
+  { name: "320px", width: 320, height: 720, mobile: true },
+  { name: "375px", width: 375, height: 812, mobile: true },
+  { name: "768px", width: 768, height: 1024, mobile: true },
+  { name: "1440px", width: 1440, height: 900, mobile: false },
+];
+
 /** A file whose bytes are a ZIP, to exercise the upload rejection page. */
 function spoofedFile() {
   const directory = mkdtempSync(join(tmpdir(), "rxplain-axe-"));
@@ -45,8 +54,26 @@ function spoofedFile() {
   return path;
 }
 
+/**
+ * Horizontal scrolling at the current viewport, in pixels.
+ *
+ * WCAG 1.4.10 requires none: a reader who has zoomed in must not have to scroll
+ * sideways to finish a sentence.
+ */
+async function horizontalOverflow(page) {
+  return page.evaluate(
+    () =>
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) -
+      window.innerWidth,
+  );
+}
+
 /** Run axe against the page's current document. */
 async function audit(page, label) {
+  const overflow = await horizontalOverflow(page);
+  if (overflow > 1) {
+    console.log(`${label.padEnd(30)} horizontal overflow of ${overflow}px (WCAG 1.4.10)`);
+  }
   await page.evaluate(axeSource);
   const results = await page.evaluate(
     async (tags) => window.axe.run(document, { runOnly: { type: "tag", values: tags } }),
@@ -54,8 +81,8 @@ async function audit(page, label) {
   );
   const { violations, passes, incomplete } = results;
   console.log(
-    `${label.padEnd(22)} violations=${violations.length} passes=${passes.length} ` +
-      `incomplete=${incomplete.length}`,
+    `${label.padEnd(30)} violations=${violations.length} passes=${passes.length} ` +
+      `incomplete=${incomplete.length} overflow=${overflow}px`,
   );
   for (const violation of violations) {
     console.log(`  [${violation.impact}] ${violation.id}: ${violation.help}`);
@@ -64,7 +91,7 @@ async function audit(page, label) {
     }
     console.log(`      ${violation.helpUrl}`);
   }
-  return violations.length;
+  return violations.length + (overflow > 1 ? 1 : 0);
 }
 
 /** Submit a file through the upload form and audit the resulting page. */
@@ -85,34 +112,49 @@ const browser = await puppeteer.launch({
 });
 
 let total = 0;
+const spoofed = spoofedFile();
 try {
-  const page = await browser.newPage();
+  for (const viewport of VIEWPORTS) {
+    const page = await browser.newPage();
+    await page.setViewport({
+      width: viewport.width,
+      height: viewport.height,
+      deviceScaleFactor: viewport.mobile ? 2 : 1,
+      isMobile: viewport.mobile,
+      hasTouch: viewport.mobile,
+    });
+    console.log(`\n--- ${viewport.name} ---`);
 
-  await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-  total += await audit(page, "upload page");
+    await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
+    total += await audit(page, "upload page");
 
-  total += await submitAndAudit(
-    page,
-    join(PRESCRIPTIONS, "clean_three_drugs.png"),
-    "guide (3 verified)",
-  );
-  total += await submitAndAudit(
-    page,
-    join(PRESCRIPTIONS, "unknown_drug_and_blank_page.png"),
-    "guide (unverified)",
-  );
-  total += await submitAndAudit(
-    page,
-    join(PRESCRIPTIONS, "illegible_scan.png"),
-    "gate refusal",
-  );
-  total += await submitAndAudit(page, spoofedFile(), "upload refusal");
+    total += await submitAndAudit(
+      page,
+      join(PRESCRIPTIONS, "clean_three_drugs.png"),
+      "guide (3 verified)",
+    );
+    total += await submitAndAudit(
+      page,
+      join(PRESCRIPTIONS, "unknown_drug_and_blank_page.png"),
+      "guide (unverified)",
+    );
+    total += await submitAndAudit(
+      page,
+      join(PRESCRIPTIONS, "illegible_scan.png"),
+      "gate refusal",
+    );
+    total += await submitAndAudit(page, spoofed, "upload refusal");
+    await page.close();
+  }
 } finally {
   await browser.close();
 }
 
 if (total > 0) {
-  console.error(`\naxe-core found ${total} WCAG 2.1 AA violation(s)`);
+  console.error(`\n${total} WCAG 2.1 AA failure(s) across ${VIEWPORTS.length} viewports`);
   process.exit(1);
 }
-console.log("\naxe-core: no WCAG 2.1 AA violations");
+console.log(
+  `\naxe-core: no WCAG 2.1 AA violations and no horizontal overflow ` +
+    `at ${VIEWPORTS.map((v) => v.name).join(", ")}`,
+);

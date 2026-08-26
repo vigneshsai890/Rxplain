@@ -13,10 +13,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 
 from app.adapters.extract import RuleBasedExtractor
-from app.adapters.ocr import DeterministicFakeOcr
+from app.adapters.ocr import DeterministicFakeOcr, OcrClient
 from app.adapters.openfda import NullOpenFdaClient, OpenFdaClient, PostgresCachedOpenFdaClient
 from app.adapters.rxnorm import PostgresRxNormResolver
 from app.adapters.rxnorm_seed import seed_if_empty
+from app.adapters.vision import NvidiaVisionOcr
 from app.config import AppEnv, Settings, get_settings
 from app.db import Database
 from app.web.logging import configure_logging
@@ -63,9 +64,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if resolved.openfda_enabled
             else NullOpenFdaClient()
         )
+        # A key switches transcription to the hosted vision model; without one
+        # the fixture replayer keeps the app runnable offline and in CI.
+        ocr: OcrClient = (
+            NvidiaVisionOcr(resolved)
+            if resolved.nvidia_api_key is not None
+            else DeterministicFakeOcr(resolved.ocr_fixture_dir)
+        )
         app.state.services = Services(
             settings=resolved,
-            ocr=DeterministicFakeOcr(resolved.ocr_fixture_dir),
+            ocr=ocr,
             extractor=RuleBasedExtractor(),
             resolver=PostgresRxNormResolver(database, resolved),
             openfda=openfda,
@@ -74,6 +82,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "startup_complete",
             environment=resolved.app_env,
             openfda_enabled=resolved.openfda_enabled,
+            transcription=type(ocr).__name__,
         )
         try:
             yield

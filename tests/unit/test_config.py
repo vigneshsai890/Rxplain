@@ -82,10 +82,34 @@ def test_env_example_declares_only_real_fields() -> None:
     assert {key.lower() for key in _example_keys()} <= declared
 
 
+def _documented_keys() -> list[str]:
+    """Return every variable named in ``.env.example``, commented out or not.
+
+    An optional secret is documented as ``# NVIDIA_API_KEY=...`` rather than being
+    assigned, because assigning it an empty value would switch a code path on with
+    an unusable credential. It is still documented, so it counts here.
+    """
+    keys: list[str] = []
+    for line in ENV_EXAMPLE.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip().lstrip("#").strip()
+        if "=" not in stripped:
+            continue
+        name = stripped.split("=", 1)[0].strip()
+        if name.isupper() and name.replace("_", "").isalnum():
+            keys.append(name)
+    return keys
+
+
 def test_env_example_documents_every_field() -> None:
     """A new setting must be documented, not left for someone to discover."""
-    documented = {key.lower() for key in _example_keys()}
+    documented = {key.lower() for key in _documented_keys()}
     assert set(Settings.model_fields) <= documented
+
+
+def test_optional_secrets_are_not_assigned_a_value() -> None:
+    """A commented secret cannot accidentally enable a path with a bad key."""
+    assert "nvidia_api_key" not in {key.lower() for key in _example_keys()}
+    assert Settings().nvidia_api_key is None
 
 
 def test_env_example_is_loadable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

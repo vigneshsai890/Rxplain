@@ -22,6 +22,7 @@ from app.adapters.extract import MedicationExtractor
 from app.adapters.ocr import FixtureNotFoundError, OcrClient
 from app.adapters.openfda import OpenFdaClient
 from app.adapters.rxnorm import RxNormResolver
+from app.adapters.vision import NotAPrescriptionError, UnsupportedForVisionError
 from app.config import Settings
 from app.domain import guide as guide_module
 from app.domain import pipeline
@@ -140,6 +141,20 @@ def _rejection_for(exc: Exception, settings: Settings) -> tuple[str, int]:
         ),
         UnsupportedMediaTypeError: (
             "That file is not a PNG, JPEG or PDF. The contents are checked, not the file name.",
+            _HTTP_UNSUPPORTED_MEDIA_TYPE,
+        ),
+        NotAPrescriptionError: (
+            (
+                "We could not find any text in that image. Take the photo again in "
+                "brighter light, with the label filling the frame."
+            ),
+            _HTTP_BAD_REQUEST,
+        ),
+        UnsupportedForVisionError: (
+            (
+                "This build reads photographs, not PDF files. Take a photo of the "
+                "prescription instead."
+            ),
             _HTTP_UNSUPPORTED_MEDIA_TYPE,
         ),
         FixtureNotFoundError: (
