@@ -1,71 +1,180 @@
 /*
- * RxPlain stylesheet.
+ * RxPlain design system.
  *
- * Every foreground/background pair declared in :root is asserted to meet WCAG
- * 2.1 AA contrast by tests/unit/test_accessibility.py, which parses the ratios
- * out of this file. Changing a colour without meeting 4.5:1 fails the build.
+ * Constraints this works inside, all of them deliberate:
  *
- * Nothing here conveys meaning by colour alone: unverified and stopped states
- * also carry the words "Not verified" and "Stopped", plus a left border.
+ * - The Content-Security-Policy is `default-src 'self'`. No web font, no icon
+ *   font, no CDN. Typography therefore uses the system UI stack, which resolves
+ *   to SF Pro on Apple platforms, Segoe UI on Windows and Roboto on Android -
+ *   the correct-looking face on each, at zero network cost.
+ * - There is no JavaScript anywhere in the app. Every interaction below is CSS
+ *   and native HTML: the disclosures are <details>, the theme follows the
+ *   operating system, and the file field is styled through
+ *   ::file-selector-button rather than replaced by a scripted widget.
+ * - Every colour pair carrying text is annotated `contrast-pair` and asserted
+ *   against the WCAG luminance formula by tests/unit/test_accessibility.py.
+ *   Both themes are checked, which is why the palette is declared once as raw
+ *   values and then mapped, rather than redefined inside the media query - a
+ *   redefinition would hide one theme from the test.
  */
 
 :root {
-  /* contrast-pair: --ink on --paper */
-  --paper: #ffffff;
-  --ink: #1a1d21;
-  /* contrast-pair: --muted-ink on --paper */
-  --muted-ink: #4a5057;
-  /* contrast-pair: --link on --paper */
-  --link: #0b5cab;
-  /* contrast-pair: --paper on --link */
-  --focus: #7a2e00;
-  /* contrast-pair: --warn-ink on --warn-paper */
-  --warn-paper: #fff4e5;
-  --warn-ink: #6b3200;
-  /* contrast-pair: --stop-ink on --stop-paper */
-  --stop-paper: #fdecec;
-  --stop-ink: #8a1c1c;
-  /* contrast-pair: --ink on --panel */
-  --panel: #f4f6f8;
-  --rule: #c3c9d0;
+  /* ---------------- palette: light ---------------- */
+  /* contrast-pair: --ink-light on --surface-light */
+  /* contrast-pair: --ink-light on --raised-light */
+  --surface-light: #ffffff;
+  --raised-light: #f5f5f7;
+  --ink-light: #1d1d1f;
+  /* contrast-pair: --muted-light on --surface-light */
+  /* contrast-pair: --muted-light on --raised-light */
+  --muted-light: #6e6e73;
+  /* contrast-pair: --link-light on --surface-light */
+  /* contrast-pair: --link-light on --raised-light */
+  --link-light: #0066cc;
+  --hairline-light: #d2d2d7;
+  /* contrast-pair: --warn-ink-light on --warn-surface-light */
+  --warn-surface-light: #fff8e8;
+  --warn-ink-light: #7a4b00;
+  /* contrast-pair: --stop-ink-light on --stop-surface-light */
+  --stop-surface-light: #fdecec;
+  --stop-ink-light: #8a1c1c;
+  /* contrast-pair: --ok-ink-light on --ok-surface-light */
+  --ok-surface-light: #e8f6ec;
+  --ok-ink-light: #1a6634;
+  --shadow-light: 0 1px 2px rgb(0 0 0 / 4%), 0 8px 24px rgb(0 0 0 / 6%);
+  --shadow-raised-light: 0 2px 4px rgb(0 0 0 / 6%), 0 16px 40px rgb(0 0 0 / 10%);
+
+  /* ---------------- palette: dark ---------------- */
+  /* contrast-pair: --ink-dark on --surface-dark */
+  /* contrast-pair: --ink-dark on --raised-dark */
+  --surface-dark: #000000;
+  --raised-dark: #1c1c1e;
+  --ink-dark: #f5f5f7;
+  /* contrast-pair: --muted-dark on --surface-dark */
+  /* contrast-pair: --muted-dark on --raised-dark */
+  --muted-dark: #98989d;
+  /* contrast-pair: --link-dark on --surface-dark */
+  /* contrast-pair: --link-dark on --raised-dark */
+  --link-dark: #2997ff;
+  --hairline-dark: #38383a;
+  /* contrast-pair: --warn-ink-dark on --warn-surface-dark */
+  --warn-surface-dark: #33240a;
+  --warn-ink-dark: #ffd9a0;
+  /* contrast-pair: --stop-ink-dark on --stop-surface-dark */
+  --stop-surface-dark: #3b0e0b;
+  --stop-ink-dark: #ffb4ab;
+  /* contrast-pair: --ok-ink-dark on --ok-surface-dark */
+  --ok-surface-dark: #0d2e18;
+  --ok-ink-dark: #a8e6bd;
+  --shadow-dark: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 50%);
+  --shadow-raised-dark: 0 2px 4px rgb(0 0 0 / 50%), 0 16px 40px rgb(0 0 0 / 60%);
+
+  /* The accent fill keeps one value across themes: white on #0066cc clears AA
+   * in both, whereas a lighter dark-mode blue would not carry white text. */
+  /* contrast-pair: --on-accent on --accent-fill */
+  --accent-fill: #0066cc;
+  --on-accent: #ffffff;
+
+  /* ---------------- active theme ---------------- */
+  --surface: var(--surface-light);
+  --raised: var(--raised-light);
+  --ink: var(--ink-light);
+  --muted: var(--muted-light);
+  --link: var(--link-light);
+  --hairline: var(--hairline-light);
+  --warn-surface: var(--warn-surface-light);
+  --warn-ink: var(--warn-ink-light);
+  --stop-surface: var(--stop-surface-light);
+  --stop-ink: var(--stop-ink-light);
+  --ok-surface: var(--ok-surface-light);
+  --ok-ink: var(--ok-ink-light);
+  --shadow: var(--shadow-light);
+  --shadow-raised: var(--shadow-raised-light);
+
+  /* ---------------- geometry and motion ---------------- */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --measure: 44rem;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
+/* The theme follows the operating system. There is no in-page toggle because a
+ * toggle needs script, and a CSS-only one would disagree with the OS setting. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: var(--surface-dark);
+    --raised: var(--raised-dark);
+    --ink: var(--ink-dark);
+    --muted: var(--muted-dark);
+    --link: var(--link-dark);
+    --hairline: var(--hairline-dark);
+    --warn-surface: var(--warn-surface-dark);
+    --warn-ink: var(--warn-ink-dark);
+    --stop-surface: var(--stop-surface-dark);
+    --stop-ink: var(--stop-ink-dark);
+    --ok-surface: var(--ok-surface-dark);
+    --ok-ink: var(--ok-ink-dark);
+    --shadow: var(--shadow-dark);
+    --shadow-raised: var(--shadow-raised-dark);
+  }
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
-  font-size: 100%;
+  color-scheme: light dark;
 }
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--surface);
   color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "SF Pro Text",
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
   font-size: 1.0625rem;
-  line-height: 1.65;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* --- focus and skip link ------------------------------------------------- */
+/* ------------------------------------------------------------------ focus */
 :focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
+  outline: 3px solid var(--link);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .skip-link {
   position: absolute;
-  left: -9999px;
+  left: 50%;
   top: 0;
-  background: var(--paper);
+  transform: translate(-50%, -120%);
+  z-index: 50;
+  background: var(--raised);
   color: var(--link);
-  padding: 0.75rem 1rem;
-  z-index: 10;
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: var(--shadow-raised);
+  transition: transform 0.2s var(--ease);
 }
 
 .skip-link:focus {
-  left: 0;
-  outline: 3px solid var(--focus);
+  transform: translate(-50%, 0);
 }
 
 .sr-only {
@@ -80,173 +189,313 @@ body {
   border: 0;
 }
 
-/* --- layout ------------------------------------------------------------- */
+/* ----------------------------------------------------------------- header */
 .banner {
-  border-bottom: 2px solid var(--rule);
-  padding: 1.25rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem clamp(1rem, 4vw, 2rem);
+  border-bottom: 1px solid var(--hairline);
+  /* The translucent, blurred bar is the one visual flourish borrowed directly;
+   * `background-color` is a full-opacity fallback where blur is unsupported. */
+  background-color: var(--surface);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border-radius: 9px;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: -0.03em;
 }
 
 .wordmark {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .tagline {
-  margin: 0.25rem 0 0;
-  color: var(--muted-ink);
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 
+/* ----------------------------------------------------------------- layout */
 main {
-  max-width: 46rem;
+  max-width: var(--measure);
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2rem) 3rem;
 }
 
 main:focus {
   outline: none;
 }
 
-.site-footer {
-  max-width: 46rem;
-  margin: 2rem auto 0;
-  padding: 1.5rem;
-  border-top: 2px solid var(--rule);
-  background: var(--panel);
-  color: var(--ink);
-}
-
-.site-footer h2 {
-  margin-top: 0;
-  font-size: 1.125rem;
-}
-
 h1 {
-  font-size: 1.875rem;
-  line-height: 1.25;
-  margin-top: 0.5rem;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
 }
 
 h2 {
-  font-size: 1.375rem;
-  margin-top: 2rem;
+  font-size: clamp(1.25rem, 3vw, 1.625rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 650;
+  margin: 2.5rem 0 0.75rem;
 }
 
 h3 {
-  font-size: 1.1875rem;
-  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  font-weight: 650;
+  margin: 0 0 0.25rem;
 }
 
 h4 {
-  font-size: 1.0625rem;
-  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 1.5rem 0 0.375rem;
 }
 
 .lede {
-  font-size: 1.125rem;
+  font-size: clamp(1.0625rem, 2.4vw, 1.25rem);
+  color: var(--muted);
+  max-width: 34rem;
+  margin: 0 0 2rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--link) 35%, transparent);
+  transition: border-color 0.15s var(--ease);
+}
+
+a:hover {
+  border-bottom-color: var(--link);
 }
 
 .note,
 .hint,
 .sample-file,
-.match-tier {
-  color: var(--muted-ink);
+.match-tier,
+.provenance-line {
+  color: var(--muted);
   font-size: 0.9375rem;
 }
 
-a {
-  color: var(--link);
-  text-decoration: underline;
-}
-
-/* --- form --------------------------------------------------------------- */
+/* ------------------------------------------------------------------- form */
 .field {
-  margin: 1.5rem 0;
+  margin: 0 0 1.5rem;
 }
 
 label {
   display: block;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 1.0625rem;
   margin-bottom: 0.25rem;
 }
 
 .hint {
-  margin: 0.25rem 0 0.5rem;
+  margin: 0 0 0.75rem;
 }
 
 input[type="file"] {
   display: block;
   width: 100%;
-  padding: 0.75rem;
-  border: 2px solid var(--rule);
-  border-radius: 6px;
-  background: var(--paper);
+  padding: 1rem;
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius);
+  background: var(--raised);
   color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ease),
+    background 0.15s var(--ease);
+}
+
+input[type="file"]:hover {
+  border-color: var(--link);
+}
+
+/* Styling the native button keeps the label association and the OS file picker,
+ * which a scripted replacement would both lose. */
+input[type="file"]::file-selector-button {
+  font: inherit;
+  font-weight: 600;
+  margin-right: 0.875rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 980px;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  cursor: pointer;
 }
 
 input[type="file"][aria-invalid="true"] {
+  border-style: solid;
   border-color: var(--stop-ink);
 }
 
 .field-error {
-  background: var(--stop-paper);
+  display: flex;
+  gap: 0.625rem;
+  background: var(--stop-surface);
   color: var(--stop-ink);
-  border-left: 6px solid var(--stop-ink);
-  padding: 0.75rem 1rem;
-  margin: 0.5rem 0;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius);
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
 }
 
+/* Apple's pill button, including the subtle press-down. */
 .button-primary,
 .button-secondary {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   font: inherit;
-  font-weight: 700;
-  padding: 0.75rem 1.25rem;
-  border-radius: 6px;
+  font-weight: 600;
+  padding: 0.875rem 1.75rem;
+  border-radius: 980px;
   cursor: pointer;
   text-decoration: none;
+  border: 1px solid transparent;
+  transition:
+    transform 0.12s var(--ease),
+    filter 0.15s var(--ease);
 }
 
 .button-primary {
-  background: var(--link);
-  color: var(--paper);
-  border: 2px solid var(--link);
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+
+.button-primary:hover {
+  filter: brightness(1.08);
+}
+
+.button-primary:active,
+.button-secondary:active {
+  transform: scale(0.975);
 }
 
 .button-secondary {
-  background: var(--paper);
+  background: var(--raised);
   color: var(--link);
-  border: 2px solid var(--link);
+  border-color: var(--hairline);
 }
 
-/* --- results ------------------------------------------------------------ */
+.button-secondary:hover {
+  border-color: var(--link);
+}
+
+a.button-secondary,
+a.button-primary {
+  border-bottom-width: 1px;
+}
+
+/* ---------------------------------------------------------------- results */
 .summary {
-  background: var(--panel);
-  border-left: 6px solid var(--link);
-  padding: 0.75rem 1rem;
-  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--ok-surface);
+  color: var(--ok-ink);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  margin: 0 0 2rem;
+  font-weight: 500;
 }
 
 .summary p {
   margin: 0;
 }
 
+.card-icon {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
 .medication {
-  border: 2px solid var(--rule);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin: 1.25rem 0;
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.125rem, 3vw, 1.75rem);
+  margin: 0 0 1.25rem;
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+
+.medication:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-raised);
+}
+
+.med-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
 }
 
 .rxnorm-badge {
-  margin: 0 0 0.75rem;
-  color: var(--muted-ink);
-  font-size: 0.9375rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0.25rem 0.625rem;
+  border-radius: 980px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 980px;
+  background: var(--ok-surface);
+  color: var(--ok-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .label-strong {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .sentences {
@@ -260,73 +509,116 @@ input[type="file"][aria-invalid="true"] {
 }
 
 .sentence {
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.375rem;
   font-size: 1.125rem;
+  letter-spacing: -0.015em;
 }
 
+/* -------------------------------------------------------- disclosures */
 details.source,
 details.label-quote {
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
-  background: var(--panel);
-  margin-top: 0.25rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-top: 0.5rem;
+  overflow: hidden;
 }
 
 details summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 550;
+  font-size: 0.9375rem;
   color: var(--link);
+  padding: 0.625rem 0.875rem;
+  list-style: none;
+  transition: background 0.15s var(--ease);
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A CSS chevron, so no icon font is needed and the CSP stays closed. */
+details summary::before {
+  content: "";
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s var(--ease);
+}
+
+details[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+details summary:hover {
+  background: var(--raised);
+}
+
+details > *:not(summary) {
+  padding: 0 0.875rem;
+}
+
+details > *:not(summary):last-child {
+  padding-bottom: 0.875rem;
 }
 
 details dl {
-  margin: 0.5rem 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
 }
 
 details dt {
-  font-weight: 700;
-  margin-top: 0.5rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 details dd {
-  margin: 0 0 0 1rem;
+  margin: 0;
 }
 
 code {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.9375rem;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  padding: 0.0625rem 0.25rem;
+  font-size: 0.875rem;
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 0.0625rem 0.375rem;
 }
 
 .snippet {
   font-style: normal;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  padding: 0.125rem 0.375rem;
+  display: inline-block;
+  background: var(--warn-surface);
+  color: var(--warn-ink);
+  border-radius: 6px;
+  padding: 0.125rem 0.5rem;
+  font-weight: 500;
 }
 
 blockquote {
   margin: 0.5rem 0;
-  padding-left: 0.875rem;
-  border-left: 4px solid var(--rule);
+  padding-left: 1rem;
+  border-left: 3px solid var(--hairline);
+  color: var(--ink);
 }
 
-.provenance-line {
-  font-size: 0.9375rem;
-  color: var(--muted-ink);
-}
-
-/* --- unverified and stopped states -------------------------------------- */
+/* ------------------------------------------------- unverified and stopped */
 .unverified {
-  background: var(--warn-paper);
+  background: var(--warn-surface);
   color: var(--warn-ink);
-  border-left: 6px solid var(--warn-ink);
-  border-radius: 0 8px 8px 0;
-  padding: 1rem 1.25rem;
-  margin: 1.25rem 0;
+  border-radius: var(--radius-lg);
+  padding: clamp(1.125rem, 3vw, 1.75rem);
+  margin: 0 0 1.25rem;
 }
 
 .unverified h3 {
@@ -334,58 +626,139 @@ blockquote {
 }
 
 .rejected {
-  background: var(--stop-paper);
+  display: flex;
+  gap: 0.875rem;
+  background: var(--stop-surface);
   color: var(--stop-ink);
-  border-left: 6px solid var(--stop-ink);
-  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
+.rejected p {
+  margin: 0;
+}
+
+/* State is always named in words as well as coloured, so the meaning survives
+ * greyscale, colour blindness and a printed page. */
 .status-word {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.875rem;
+  letter-spacing: 0.06em;
+  font-size: 0.75rem;
   margin-right: 0.5rem;
 }
 
 .ask-pharmacist {
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -0.015em;
   margin: 0.25rem 0;
 }
 
-/* --- misc --------------------------------------------------------------- */
+/* ------------------------------------------------------------------ misc */
+.samples {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--hairline);
+}
+
 .sample-list {
-  padding-left: 1.25rem;
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sample-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  transition: border-color 0.15s var(--ease);
+}
+
+.sample-list li:hover {
+  border-color: var(--link);
+}
+
+.sample-list a {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.scan-quality {
+  margin-top: 3rem;
 }
 
 .scan-quality dl {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.25rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1rem;
   margin: 0;
+  padding: 0;
+}
+
+.scan-quality div {
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 0.875rem 1rem;
 }
 
 .scan-quality dt {
-  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin-bottom: 0.125rem;
 }
 
 .scan-quality dd {
   margin: 0;
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
 
-/* --------------------------------------------------------------------------
- * Mobile and accessibility preferences.
- *
- * The layout above is a single column with a max-width, so it already reflows;
- * these rules handle what reflow alone does not: touch target size, avoiding
- * horizontal scroll from long unbroken strings (RxCUIs, span ids, label prose),
- * and honouring the user's own contrast and motion settings.
- * ----------------------------------------------------------------------- */
+.actions {
+  margin-top: 2.5rem;
+}
 
-/* WCAG 2.1 AA "Reflow" (1.4.10): no horizontal scrolling at 320px. Long refs
- * and label text are the realistic offenders. */
+/* ---------------------------------------------------------------- footer */
+.site-footer {
+  border-top: 1px solid var(--hairline);
+  background: var(--raised);
+  color: var(--muted);
+  padding: 2.5rem clamp(1rem, 4vw, 2rem);
+}
+
+.site-footer > * {
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+.site-footer h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.site-footer p {
+  font-size: 0.9375rem;
+  max-width: 40rem;
+}
+
+/* ------------------------------------------------------- small viewports */
+/* WCAG 1.4.10 requires no horizontal scrolling at 320px. Long refs and label
+ * prose are the realistic offenders. */
 code,
 .snippet,
 blockquote p,
@@ -396,81 +769,45 @@ blockquote p,
 
 @media (max-width: 40rem) {
   body {
-    /* 1.0625rem is comfortable on a laptop but tight on a phone held at arm's
-     * length, which is how an older user reads this. */
     font-size: 1.125rem;
   }
 
-  main,
-  .site-footer {
-    padding: 1rem;
-  }
-
-  .banner {
-    padding: 1rem;
-  }
-
-  h1 {
-    font-size: 1.625rem;
-  }
-
-  h2 {
-    font-size: 1.25rem;
-  }
-
-  /* WCAG 2.1 AA "Target Size" is AAA, but a 48px target is the practical floor
-   * for a shaky hand on a small screen, so it is applied anyway. */
+  /* A 48px target is the practical floor for a shaky hand on a small screen. */
   .button-primary,
   .button-secondary,
   details summary,
   input[type="file"] {
     min-height: 48px;
-    width: 100%;
   }
 
   .button-primary,
   .button-secondary {
-    text-align: center;
-    padding: 0.875rem 1rem;
+    width: 100%;
   }
 
-  details summary {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem 0;
-  }
-
-  .medication,
-  .unverified {
-    padding: 0.875rem 1rem;
-  }
-
-  /* Two columns become one so nothing is squeezed into a few characters. */
-  .scan-quality dl {
+  details dl {
     grid-template-columns: 1fr;
     gap: 0;
   }
 
-  .scan-quality dt {
+  details dt {
     margin-top: 0.5rem;
   }
 
-  details dd {
-    margin-left: 0;
+  .tagline {
+    display: none;
   }
 }
 
-/* Honour a user's system contrast preference rather than offering a bespoke
- * toggle that their OS setting would then disagree with. */
+/* Honour the user's own contrast preference rather than offering a bespoke
+ * toggle their OS setting would then disagree with. */
 @media (prefers-contrast: more) {
   :root {
     --ink: #000000;
-    --muted-ink: #1a1d21;
+    --muted: #1d1d1f;
     --link: #00408c;
-    --rule: #000000;
-    --panel: #ffffff;
-    --warn-ink: #4a2200;
-    --stop-ink: #6b0000;
+    --hairline: #000000;
+    --raised: #ffffff;
   }
 
   .medication,
@@ -478,7 +815,10 @@ blockquote p,
   details.label-quote,
   input[type="file"] {
     border-width: 2px;
-    border-color: var(--rule);
+  }
+
+  a {
+    text-decoration: underline;
   }
 }
 
@@ -490,5 +830,23 @@ blockquote p,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .banner,
+  .skip-link,
+  .actions,
+  .samples {
+    display: none;
+  }
+
+  details {
+    /* A printed guide must not hide its own provenance. */
+    display: block;
+  }
+
+  details > *:not(summary) {
+    display: block !important;
   }
 }

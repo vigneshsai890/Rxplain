@@ -5,6 +5,7 @@
 <h1>We could not read that scan</h1>
 
 <div role="status" aria-live="polite" class="rejected">
+  <svg class="card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M8.5 8.5l7 7m0-7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
   <p class="ask-pharmacist">
     <span class="status-word">Stopped</span>
     RxPlain read this scan too poorly to be sure of anything on it, so it is not
@@ -12,15 +13,21 @@
   </p>
 </div>
 
-<section aria-labelledby="why-heading">
+<section aria-labelledby="why-heading" class="scan-quality">
   <h2 id="why-heading">Why it stopped</h2>
   <dl>
-    <dt>Average confidence in this scan</dt>
-    <dd>{{ mean_percent }}%</dd>
-    <dt>Minimum needed</dt>
-    <dd>{{ threshold_percent }}%</dd>
-    <dt>Words read</dt>
-    <dd>{{ report.token_count }}</dd>
+    <div>
+      <dt>Confidence in this scan</dt>
+      <dd>{{ mean_percent }}%</dd>
+    </div>
+    <div>
+      <dt>Minimum needed</dt>
+      <dd>{{ threshold_percent }}%</dd>
+    </div>
+    <div>
+      <dt>Words read</dt>
+      <dd>{{ report.token_count }}</dd>
+    </div>
   </dl>
 </section>
 
@@ -34,5 +41,5 @@
   </ul>
 </section>
 
-<p><a href="/" class="button-secondary">Try another photo</a></p>
+<p class="actions"><a href="/" class="button-secondary">Try another photo</a></p>
 {% endblock %}

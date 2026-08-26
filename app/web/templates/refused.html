@@ -5,6 +5,7 @@
 <h1>{{ heading }}</h1>
 
 <div role="status" aria-live="polite" class="rejected">
+  <svg class="card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M8.5 8.5l7 7m0-7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
   <p class="ask-pharmacist">
     <span class="status-word">Stopped</span>
     {{ message }}
@@ -20,5 +21,5 @@
   </ul>
 </section>
 
-<p><a href="/" class="button-secondary">Back to the start</a></p>
+<p class="actions"><a href="/" class="button-secondary">Back to the start</a></p>
 {% endblock %}

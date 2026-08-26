@@ -3,6 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="RxPlain reads a prescription and explains it in plain language, showing where every fact came from."
+    />
     <title>{% block title %}RxPlain{% endblock %}</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
@@ -10,8 +15,11 @@
     <a class="skip-link" href="#main">Skip to main content</a>
 
     <header class="banner">
-      <p class="wordmark"><span aria-hidden="true">Rx</span><span class="sr-only">RxPlain</span>Plain</p>
-      <p class="tagline">Read your prescription in plain language</p>
+      <span class="mark" aria-hidden="true">Rx</span>
+      <div>
+        <p class="wordmark">RxPlain</p>
+        <p class="tagline">Your prescription, in plain language</p>
+      </div>
     </header>
 
     <main id="main" tabindex="-1">

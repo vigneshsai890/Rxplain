@@ -2,25 +2,30 @@
 {% block title %}Upload a prescription &mdash; RxPlain{% endblock %}
 
 {% block main %}
-<h1>Upload a prescription</h1>
+<h1>Read your prescription.</h1>
 
 <p class="lede">
-  RxPlain reads the medicine names, strengths and instructions from your
-  prescription. It checks every name against a drug list from the US National
-  Library of Medicine. If it cannot confirm something, it says so instead of
-  guessing.
+  RxPlain finds the medicine names, strengths and instructions on your
+  prescription, checks every name against a drug list from the US National Library
+  of Medicine, and shows you where each fact came from. If it cannot confirm
+  something, it tells you instead of guessing.
 </p>
 
 <form action="/guide" method="post" enctype="multipart/form-data" novalidate>
   <div class="field">
     <label for="prescription">Prescription photo or PDF</label>
     <p class="hint" id="prescription-hint">
-      PNG, JPEG or PDF, up to {{ max_mb }} MB. The file contents are checked, so
+      PNG, JPEG or PDF, up to {{ max_mb }} MB. The contents are checked, so
       renaming a file does not change how it is read.
     </p>
     {% if error %}
     <p class="field-error" id="prescription-error">
-      <span class="label-strong">Problem:</span> {{ error }}
+      <svg class="card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+        <path d="M12 7v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        <circle cx="12" cy="16.5" r="1.15" fill="currentColor" />
+      </svg>
+      <span><span class="label-strong">Problem:</span> {{ error }}</span>
     </p>
     {% endif %}
     <input
@@ -39,21 +44,31 @@
 
 <section aria-labelledby="samples-heading" class="samples">
   <h2 id="samples-heading">Try it with a sample</h2>
-  <p>
+  <p class="note">
     This build reads prescriptions from a fixed set of committed samples, because
     it has no credentials for a hosted OCR service. Download one and upload it
-    unchanged to see the whole pipeline run.
+    unchanged to watch the whole pipeline run &mdash; including the two that are
+    deliberately refused.
   </p>
   <ul class="sample-list">
     {% for sample in samples %}
     <li>
+      <svg class="card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
       <a href="/samples/{{ sample.stem }}" download>{{ sample.label }}</a>
-      <span class="sample-file">({{ sample.name }})</span>
+      <span class="sample-file">{{ sample.name }}</span>
     </li>
     {% endfor %}
   </ul>
   <p class="note">
-    Every sample is marked <em>SAMPLE &mdash; NOT A REAL PRESCRIPTION</em>. They
+    Every sample is stamped <em>SAMPLE &mdash; NOT A REAL PRESCRIPTION</em>. They
     are test documents, not prescriptions for anyone.
   </p>
 </section>

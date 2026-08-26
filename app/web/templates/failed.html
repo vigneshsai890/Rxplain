@@ -5,6 +5,7 @@
 <h1>We could not show a guide</h1>
 
 <div role="status" aria-live="polite" class="rejected">
+  <svg class="card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M8.5 8.5l7 7m0-7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
   <p class="ask-pharmacist">
     <span class="status-word">Stopped</span>
     RxPlain built a guide for this prescription, then checked every line against
@@ -14,15 +15,19 @@
   </p>
 </div>
 
-<section aria-labelledby="detail-heading">
+<section aria-labelledby="detail-heading" class="scan-quality">
   <h2 id="detail-heading">What the check found</h2>
   <dl>
-    <dt>Result</dt>
-    <dd>{{ rejection.detail }}</dd>
-    <dt>Attempts</dt>
-    <dd>{{ rejection.attempts }}</dd>
+    <div>
+      <dt>Result</dt>
+      <dd style="font-size:1rem;font-weight:500">{{ rejection.detail }}</dd>
+    </div>
+    <div>
+      <dt>Attempts</dt>
+      <dd>{{ rejection.attempts }}</dd>
+    </div>
   </dl>
 </section>
 
-<p><a href="/" class="button-secondary">Start again</a></p>
+<p class="actions"><a href="/" class="button-secondary">Start again</a></p>
 {% endblock %}

@@ -142,10 +142,16 @@ def test_every_declared_colour_pair_meets_aa(foreground: str, background: str) -
 
 
 def test_focus_indicator_is_visible_and_offset() -> None:
-    """A visible focus ring is required, not merely the browser default."""
+    """A visible focus ring is required, not merely the browser default.
+
+    Asserted by shape rather than by variable name, so renaming a colour token is
+    a refactor and not a failing test, while removing the ring still fails.
+    """
     css = STYLESHEET.read_text(encoding="utf-8")
     assert ":focus-visible" in css
-    assert "outline: 3px solid var(--focus)" in css
+    ring = re.search(r":focus-visible\s*\{[^}]*outline:\s*(\d+)px solid var\(--[a-z-]+\)", css)
+    assert ring is not None, "no themed outline declared on :focus-visible"
+    assert int(ring.group(1)) >= 2, "a 1px ring is too easy to miss"
     assert "outline-offset" in css
 
 

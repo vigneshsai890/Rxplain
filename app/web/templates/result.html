@@ -5,6 +5,16 @@
 <h1>Your prescription</h1>
 
 <div role="status" aria-live="polite" class="summary">
+  <svg class="card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+    <path
+      d="m8 12.5 2.5 2.5L16 9.5"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
   <p>
     {{ guide.medications | length }} medicine{{ '' if guide.medications | length == 1 else 's' }}
     confirmed.
@@ -21,11 +31,26 @@
 
   {% for medication in guide.medications %}
   <article class="medication" aria-labelledby="med-{{ loop.index }}-heading">
-    <h3 id="med-{{ loop.index }}-heading" lang="en">{{ medication.display_name }}</h3>
+    <div class="med-head">
+      <h3 id="med-{{ loop.index }}-heading" lang="en">{{ medication.display_name }}</h3>
+      <span class="verified-pill">
+        <svg class="card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+             style="width:.9rem;height:.9rem">
+          <path
+            d="m5 12.5 4.5 4.5L19 7.5"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        Verified
+      </span>
+    </div>
 
     <p class="rxnorm-badge">
-      <span class="label-strong">RxNorm code:</span> {{ medication.rxcui }}
-      <span class="match-tier">(matched: {{ medication.match_tier }})</span>
+      <span class="label-strong">RxNorm</span> {{ medication.rxcui }}
+      <span class="match-tier">&middot; matched {{ medication.match_tier }}</span>
     </p>
 
     <ul class="sentences">
@@ -92,7 +117,7 @@
 {% if guide.unverified %}
 <section aria-labelledby="unconfirmed-heading">
   <h2 id="unconfirmed-heading">Items we could not confirm</h2>
-  <p>
+  <p class="note">
     RxPlain will not guess. For each item below, ask your pharmacist rather than
     relying on anything here.
   </p>
@@ -100,7 +125,20 @@
   {% for item in guide.unverified %}
   <article class="unverified">
     <h3>
-      <span class="status-word">Not verified</span>
+      <span class="status-word">
+        <svg class="card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+             style="width:.9rem;height:.9rem">
+          <path
+            d="M12 4.5 21 19H3z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+          />
+          <path d="M12 10v3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <circle cx="12" cy="16.4" r="1" fill="currentColor" />
+        </svg>
+        Not verified
+      </span>
     </h3>
     <p class="ask-pharmacist">{{ item.message }}</p>
     <details class="source">
@@ -132,14 +170,20 @@
 <section aria-labelledby="scan-heading" class="scan-quality">
   <h2 id="scan-heading">Scan quality</h2>
   <dl>
-    <dt>Average confidence</dt>
-    <dd>{{ (report.mean_confidence * 100) | round | int }}%</dd>
-    <dt>Words read</dt>
-    <dd>{{ report.token_count }}</dd>
-    <dt>Words flagged as unclear</dt>
-    <dd>{{ report.low_confidence_token_ids | length }}</dd>
+    <div>
+      <dt>Average confidence</dt>
+      <dd>{{ (report.mean_confidence * 100) | round | int }}%</dd>
+    </div>
+    <div>
+      <dt>Words read</dt>
+      <dd>{{ report.token_count }}</dd>
+    </div>
+    <div>
+      <dt>Words unclear</dt>
+      <dd>{{ report.low_confidence_token_ids | length }}</dd>
+    </div>
   </dl>
 </section>
 
-<p><a href="/" class="button-secondary">Read another prescription</a></p>
+<p class="actions"><a href="/" class="button-secondary">Read another prescription</a></p>
 {% endblock %}
