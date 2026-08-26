@@ -1,0 +1,141 @@
+[project]
+name = "rxplain"
+version = "0.1.0"
+description = "RxPlain - medication-literacy tool."
+requires-python = "==3.12.*"
+dependencies = [
+    "fastapi==0.141.1",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.15.0",
+    "structlog==26.1.0",
+    "uvicorn[standard]==0.52.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    # starlette >=1.6 deprecates httpx for TestClient in favour of httpx2.
+    "httpx2==2.12.0",
+    "mypy==2.3.1",
+    "pip-audit==2.10.1",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "ruff==0.16.4",
+]
+
+[build-system]
+requires = ["hatchling==1.28.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# --------------------------------------------------------------------------- #
+# ruff
+# --------------------------------------------------------------------------- #
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["."]
+
+[tool.ruff.lint]
+select = [
+    "A",      # builtin shadowing
+    "ANN",    # missing annotations
+    "ARG",    # unused arguments
+    "ASYNC",  # async antipatterns
+    "B",      # bugbear
+    "BLE",    # blind except
+    "C4",     # comprehensions
+    "D",      # docstrings
+    "DTZ",    # naive datetimes
+    "E",      # pycodestyle errors
+    "ERA",    # commented-out code
+    "F",      # pyflakes
+    "FBT",    # boolean traps
+    "FIX",    # TODO / FIXME / XXX markers
+    "G",      # logging format
+    "I",      # import sorting
+    "ICN",    # import conventions
+    "ISC",    # implicit string concat
+    "LOG",    # logging misuse
+    "N",      # naming
+    "PIE",    # misc lints
+    "PL",     # pylint
+    "PT",     # pytest style
+    "PTH",    # pathlib
+    "RET",    # return simplification
+    "RUF",    # ruff-specific
+    "S",      # bandit
+    "SIM",    # simplify
+    "TID",    # tidy imports
+    "TRY",    # exception antipatterns
+    "UP",     # pyupgrade
+    "W",      # pycodestyle warnings
+]
+ignore = [
+    "D203",   # conflicts with D211 (no blank line before class docstring)
+    "D213",   # conflicts with D212 (summary on first line)
+    "EM101",  # readability: short literals in raise are clearer inline
+    "EM102",
+    "TRY003", # readability: message text lives at the raise site
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PLR2004"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+# --------------------------------------------------------------------------- #
+# mypy
+# --------------------------------------------------------------------------- #
+[tool.mypy]
+python_version = "3.12"
+files = ["app", "tests"]
+strict = true
+disallow_any_explicit = true
+warn_unreachable = true
+extra_checks = true
+enable_error_code = [
+    "ignore-without-code",
+    "possibly-undefined",
+    "redundant-expr",
+    "redundant-self",
+    "truthy-bool",
+    "truthy-iterable",
+    "unused-awaitable",
+]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
+
+# --------------------------------------------------------------------------- #
+# pytest
+# --------------------------------------------------------------------------- #
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = "-q --strict-markers --strict-config"
+testpaths = ["tests"]
+pythonpath = ["."]
+filterwarnings = ["error"]
+
+# --------------------------------------------------------------------------- #
+# coverage
+# --------------------------------------------------------------------------- #
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

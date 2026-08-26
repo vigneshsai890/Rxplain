@@ -1,0 +1,1 @@
+"""RxPlain application package."""
