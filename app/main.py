@@ -16,8 +16,14 @@ from slowapi.errors import RateLimitExceeded
 
 from app.adapters.extract import RuleBasedExtractor
 from app.adapters.ocr import DeterministicFakeOcr, OcrClient
-from app.adapters.openfda import NullOpenFdaClient, OpenFdaClient, PostgresCachedOpenFdaClient
-from app.adapters.rxnorm import PostgresRxNormResolver
+from app.adapters.openfda import (
+    InMemoryOpenFdaClient,
+    NullOpenFdaClient,
+    OpenFdaClient,
+    PostgresCachedOpenFdaClient,
+)
+from app.adapters.rxnorm import PostgresRxNormResolver, RxNormResolver
+from app.adapters.rxnorm_local import InProcessRxNormResolver
 from app.adapters.rxnorm_seed import seed_if_empty
 from app.adapters.vision import NvidiaVisionOcr
 from app.config import AppEnv, Settings, get_settings
@@ -99,17 +105,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         """Open the database, build the services, and tear them down after."""
-        database = Database(resolved)
-        await database.open()
-        await database.apply_migrations()
-        # A container with an empty database would resolve nothing and report
-        # every drug as unverified, so the committed seed is loaded on first run.
-        await seed_if_empty(database, resolved.rxnorm_seed_path)
-        openfda: OpenFdaClient = (
-            PostgresCachedOpenFdaClient(database, resolved)
-            if resolved.openfda_enabled
-            else NullOpenFdaClient()
-        )
+        database: Database | None = None
+        resolver: RxNormResolver
+        openfda: OpenFdaClient
+
+        if resolved.storage_backend == "postgres":
+            database = Database(resolved)
+            await database.open()
+            await database.apply_migrations()
+            # An empty database would resolve nothing and report every drug as
+            # unverified, so the committed seed is loaded on first run.
+            await seed_if_empty(database, resolved.rxnorm_seed_path)
+            resolver = PostgresRxNormResolver(database, resolved)
+            openfda = (
+                PostgresCachedOpenFdaClient(database, resolved)
+                if resolved.openfda_enabled
+                else NullOpenFdaClient()
+            )
+        else:
+            # No database: the seed is small enough to index in process, which is
+            # what a serverless deployment needs. Resolution behaviour is
+            # identical; see app/adapters/rxnorm_local.py.
+            local = InProcessRxNormResolver(resolved)
+            resolver = local
+            openfda = (
+                InMemoryOpenFdaClient(local.product_rxcuis, resolved)
+                if resolved.openfda_enabled
+                else NullOpenFdaClient()
+            )
         # A key switches transcription to the hosted vision model; without one
         # the fixture replayer keeps the app runnable offline and in CI.
         ocr: OcrClient = (
@@ -121,19 +144,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             settings=resolved,
             ocr=ocr,
             extractor=RuleBasedExtractor(),
-            resolver=PostgresRxNormResolver(database, resolved),
+            resolver=resolver,
             openfda=openfda,
         )
         _LOGGER.info(
             "startup_complete",
             environment=resolved.app_env,
+            storage_backend=resolved.storage_backend,
             openfda_enabled=resolved.openfda_enabled,
             transcription=type(ocr).__name__,
         )
         try:
             yield
         finally:
-            await database.close()
+            if database is not None:
+                await database.close()
 
     # The interactive docs load Swagger/ReDoc assets from a CDN, which
     # `default-src 'self'` blocks. Serving a permanently broken page would be

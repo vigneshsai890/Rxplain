@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.12",
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [{ "src": "/(.*)", "dest": "api/index.py" }],
+  "functions": {
+    "api/index.py": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "env": {
+    "STORAGE_BACKEND": "memory",
+    "OCR_FIXTURE_DIR": "tests/golden/ocr",
+    "SAMPLE_PRESCRIPTION_DIR": "tests/golden/prescriptions",
+    "RXNORM_SEED_PATH": "migrations/seed/rxnorm_seed.json",
+    "APP_ENV": "production",
+    "LOG_LEVEL": "INFO"
+  }
+}

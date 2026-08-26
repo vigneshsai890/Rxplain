@@ -40,6 +40,7 @@ summarises or simplifies it.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Final, Protocol, runtime_checkable
 
@@ -284,25 +285,13 @@ class PostgresCachedOpenFdaClient:
         self, ingredient_rxcui: str, generic_name: str, product_rxcuis: frozenset[str]
     ) -> OpenFdaLabel | None:
         """Query openFDA and accept the first label whose RxCUIs intersect."""
-        params = {
-            "search": f'openfda.generic_name:"{generic_name}"',
-            "limit": "10",
-        }
-        try:
-            async with httpx2.AsyncClient(timeout=self._timeout) as client:
-                response = await client.get(f"{self._base_url}/drug/label.json", params=params)
-        except httpx2.HTTPError as exc:
-            _LOGGER.warning("openfda_request_failed", error=type(exc).__name__)
-            return None
-
-        if response.status_code == httpx2.codes.NOT_FOUND:
-            _LOGGER.info("openfda_no_results", ingredient_rxcui=ingredient_rxcui)
-            return None
-        if response.status_code != httpx2.codes.OK:
-            _LOGGER.warning("openfda_unexpected_status", status_code=response.status_code)
-            return None
-
-        return self._select(response.json(), ingredient_rxcui, generic_name, product_rxcuis)
+        return await search_openfda(
+            base_url=self._base_url,
+            timeout_seconds=self._timeout,
+            ingredient_rxcui=ingredient_rxcui,
+            generic_name=generic_name,
+            product_rxcuis=product_rxcuis,
+        )
 
     @staticmethod
     def _select(
@@ -311,52 +300,151 @@ class PostgresCachedOpenFdaClient:
         ingredient_name: str,
         product_rxcuis: frozenset[str],
     ) -> OpenFdaLabel | None:
-        """Pick the first result whose product RxCUIs confirm the ingredient."""
-        if not isinstance(body, dict):
-            return None
-        results = body.get("results")
-        if not isinstance(results, list):
-            return None
+        """Delegate to :func:`select_label`. Retained for existing call sites."""
+        return select_label(body, ingredient_rxcui, ingredient_name, product_rxcuis)
 
-        for result in results:
-            if not isinstance(result, dict):
-                continue
-            openfda = result.get("openfda")
-            if not isinstance(openfda, dict):
-                continue
-            overlap = product_rxcuis & set(_string_list(openfda.get("rxcui")))
-            if not overlap:
-                continue
-            substances = _string_list(openfda.get("substance_name"))
-            if not describes_only(substances, ingredient_name):
-                _LOGGER.info(
-                    "openfda_label_rejected_multi_substance",
-                    ingredient_rxcui=ingredient_rxcui,
-                    substance_count=len(substances),
-                )
-                continue
-            spl_id = _first_string(openfda.get("spl_id")) or _first_string(result.get("id"))
-            spl_set_id = _first_string(openfda.get("spl_set_id")) or _first_string(
-                result.get("set_id")
-            )
-            generic = _first_string(openfda.get("generic_name"))
-            sections = _sections_from_result(result)
-            if not (spl_id and spl_set_id and generic and sections):
-                continue
-            _LOGGER.info(
-                "openfda_label_accepted",
-                ingredient_rxcui=ingredient_rxcui,
-                matched_product_rxcuis=len(overlap),
-                sections=len(sections),
-            )
-            return OpenFdaLabel(
-                ingredient_rxcui=ingredient_rxcui,
-                spl_id=spl_id,
-                spl_set_id=spl_set_id,
-                generic_name=generic,
-                accepted_product_rxcuis=tuple(sorted(overlap)),
-                sections=sections,
-            )
 
-        _LOGGER.info("openfda_no_rxcui_overlap", ingredient_rxcui=ingredient_rxcui)
+async def search_openfda(
+    *,
+    base_url: str,
+    timeout_seconds: float,
+    ingredient_rxcui: str,
+    generic_name: str,
+    product_rxcuis: frozenset[str],
+) -> OpenFdaLabel | None:
+    """Query openFDA for a label and accept it only if its RxCUIs confirm the drug.
+
+    Module level so both the database-backed client and the in-memory one share one
+    implementation of the request and one of the acceptance rules. A second copy
+    would be a second place for the safety checks to drift.
+
+    Args:
+        base_url: openFDA API root.
+        timeout_seconds: Request timeout, passed to the HTTP client.
+        ingredient_rxcui: The RxCUI the drug text resolved to.
+        generic_name: The string RxNorm matched, used as the search term.
+        product_rxcuis: Product RxCUIs known for this ingredient.
+
+    Returns:
+        An accepted label, or ``None`` on any failure or rejection.
+    """
+    params = {"search": f'openfda.generic_name:"{generic_name}"', "limit": "10"}
+    try:
+        async with httpx2.AsyncClient(timeout=timeout_seconds) as client:
+            response = await client.get(f"{base_url}/drug/label.json", params=params)
+    except httpx2.HTTPError as exc:
+        _LOGGER.warning("openfda_request_failed", error=type(exc).__name__)
         return None
+
+    if response.status_code == httpx2.codes.NOT_FOUND:
+        _LOGGER.info("openfda_no_results", ingredient_rxcui=ingredient_rxcui)
+        return None
+    if response.status_code != httpx2.codes.OK:
+        _LOGGER.warning("openfda_unexpected_status", status_code=response.status_code)
+        return None
+
+    return select_label(response.json(), ingredient_rxcui, generic_name, product_rxcuis)
+
+
+def select_label(
+    body: object,
+    ingredient_rxcui: str,
+    ingredient_name: str,
+    product_rxcuis: frozenset[str],
+) -> OpenFdaLabel | None:
+    """Pick the first result whose product RxCUIs and substance confirm the drug.
+
+    Both checks are required. An RxCUI overlap alone accepts a combination
+    product's label for a single-ingredient prescription, because RxNorm correctly
+    relates a combination to each of its ingredients.
+    """
+    if not isinstance(body, dict):
+        return None
+    results = body.get("results")
+    if not isinstance(results, list):
+        return None
+
+    for result in results:
+        if not isinstance(result, dict):
+            continue
+        openfda = result.get("openfda")
+        if not isinstance(openfda, dict):
+            continue
+        overlap = product_rxcuis & set(_string_list(openfda.get("rxcui")))
+        if not overlap:
+            continue
+        substances = _string_list(openfda.get("substance_name"))
+        if not describes_only(substances, ingredient_name):
+            _LOGGER.info(
+                "openfda_label_rejected_multi_substance",
+                ingredient_rxcui=ingredient_rxcui,
+                substance_count=len(substances),
+            )
+            continue
+        spl_id = _first_string(openfda.get("spl_id")) or _first_string(result.get("id"))
+        spl_set_id = _first_string(openfda.get("spl_set_id")) or _first_string(result.get("set_id"))
+        generic = _first_string(openfda.get("generic_name"))
+        sections = _sections_from_result(result)
+        if not (spl_id and spl_set_id and generic and sections):
+            continue
+        _LOGGER.info(
+            "openfda_label_accepted",
+            ingredient_rxcui=ingredient_rxcui,
+            matched_product_rxcuis=len(overlap),
+            sections=len(sections),
+        )
+        return OpenFdaLabel(
+            ingredient_rxcui=ingredient_rxcui,
+            spl_id=spl_id,
+            spl_set_id=spl_set_id,
+            generic_name=generic,
+            accepted_product_rxcuis=tuple(sorted(overlap)),
+            sections=sections,
+        )
+
+    _LOGGER.info("openfda_no_rxcui_overlap", ingredient_rxcui=ingredient_rxcui)
+    return None
+
+
+class InMemoryOpenFdaClient:
+    """openFDA client with an in-process cache and no database.
+
+    Used by the memory storage backend, where product RxCUIs come from the
+    in-process RxNorm index rather than a table. The cache is per process, so a
+    scaled deployment fetches once per instance; openFDA is public and the miss
+    costs one request, so that is an acceptable trade for removing the dependency.
+    """
+
+    def __init__(self, product_rxcuis: Callable[[str], frozenset[str]], settings: Settings) -> None:
+        """Bind the client to a product-RxCUI lookup and openFDA configuration."""
+        self._product_rxcuis = product_rxcuis
+        self._base_url = settings.openfda_base_url.rstrip("/")
+        self._timeout = settings.openfda_timeout_seconds
+        self._ttl = timedelta(hours=settings.openfda_cache_ttl_hours)
+        self._cache: dict[str, tuple[datetime, OpenFdaLabel | None]] = {}
+
+    async def fetch_label(self, ingredient_rxcui: str, generic_name: str) -> OpenFdaLabel | None:
+        """Return a verified label for the ingredient, from cache or openFDA.
+
+        A negative result is cached too, so a drug with no acceptable label does
+        not re-query openFDA on every request.
+        """
+        cached = self._cache.get(ingredient_rxcui)
+        if cached is not None and datetime.now(tz=UTC) - cached[0] <= self._ttl:
+            return cached[1]
+
+        products = self._product_rxcuis(ingredient_rxcui)
+        if not products:
+            _LOGGER.info("openfda_no_product_rxcuis", ingredient_rxcui=ingredient_rxcui)
+            self._cache[ingredient_rxcui] = (datetime.now(tz=UTC), None)
+            return None
+
+        label = await search_openfda(
+            base_url=self._base_url,
+            timeout_seconds=self._timeout,
+            ingredient_rxcui=ingredient_rxcui,
+            generic_name=generic_name,
+            product_rxcuis=products,
+        )
+        self._cache[ingredient_rxcui] = (datetime.now(tz=UTC), label)
+        return label

@@ -1,0 +1,16 @@
+# Generated from pyproject.toml [project.dependencies] by scripts/sync_requirements.py.
+# Vercel's Python runtime installs from requirements.txt, not from pyproject.
+# A test asserts the two stay identical, so this cannot drift silently.
+anyio==4.14.2
+fastapi==0.141.1
+httpx2==2.12.0
+jinja2==3.1.6
+psycopg[binary,pool]==3.3.4
+pymongo==4.17.0
+slowapi==0.1.10
+pydantic==2.13.4
+pydantic-settings==2.15.0
+python-multipart==0.0.32
+rapidfuzz==3.14.5
+structlog==26.1.0
+uvicorn[standard]==0.52.4

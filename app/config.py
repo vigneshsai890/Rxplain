@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     referrer_policy: str = Field(default="no-referrer", min_length=1)
 
     # --- storage ------------------------------------------------------------
+    # "postgres" uses the database for RxNorm resolution and the openFDA cache.
+    # "memory" serves both from the committed seed in process. The seed is 310
+    # concepts, so the index fits in memory and every tier stays a set operation;
+    # app/adapters/rxnorm_local.py reproduces pg_trgm exactly, verified against a
+    # live server. "memory" is what a serverless or database-less deployment uses.
+    storage_backend: Literal["postgres", "memory"] = "postgres"
+
     database_url: SecretStr = SecretStr(
         "postgresql://rxplain:rxplain_local_dev@127.0.0.1:55432/rxplain"
     )
