@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from app.adapters.ocr import DeterministicFakeOcr
 from app.config import Settings, get_settings
 from app.main import create_app
+from app.web import ratelimit
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PRESCRIPTION_DIR = REPO_ROOT / "tests" / "golden" / "prescriptions"
@@ -28,8 +29,12 @@ def isolated_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     for name in Settings.model_fields:
         monkeypatch.delenv(name.upper(), raising=False)
     get_settings.cache_clear()
+    # The rate limiter is a process-wide singleton, so its counters would
+    # otherwise accumulate across tests and throttle unrelated ones.
+    ratelimit.reset()
     yield
     get_settings.cache_clear()
+    ratelimit.reset()
 
 
 @pytest.fixture(scope="session")

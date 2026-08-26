@@ -130,6 +130,10 @@ jobs:
       # The audit only needs the pages to render; label quotes are not required
       # for any WCAG rule, so a third-party outage must not fail this gate.
       OPENFDA_ENABLED: "false"
+      # The audit loads every page at four viewports, which legitimately exceeds
+      # the per-IP limit. It is auditing markup, not throttling, and throttling
+      # has its own tests in tests/unit/test_limits.py.
+      RATE_LIMIT_ENABLED: "false"
       RXPLAIN_URL: http://127.0.0.1:8080
 
     steps:

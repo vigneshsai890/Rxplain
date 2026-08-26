@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} &mdash; RxPlain{% endblock %}
+
+{% block main %}
+<h1>{{ heading }}</h1>
+
+<div role="status" aria-live="polite" class="rejected">
+  <p class="ask-pharmacist">
+    <span class="status-word">Stopped</span>
+    {{ message }}
+  </p>
+</div>
+
+<section aria-labelledby="next-heading">
+  <h2 id="next-heading">What to do next</h2>
+  <ul>
+    {% for step in steps %}
+    <li>{{ step }}</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<p><a href="/" class="button-secondary">Back to the start</a></p>
+{% endblock %}

@@ -85,6 +85,13 @@ class Settings(BaseSettings):
     # Trigram similarity required by the RxNorm approximate-match tier.
     rxnorm_min_similarity: float = Field(default=0.85, ge=0.50, le=1.0)
 
+    # --- rate limiting ------------------------------------------------------
+    # /guide triggers a transcription that can take ~45s, so an unauthenticated
+    # caller can amplify cost heavily. These are per-client-IP.
+    rate_limit_guide: str = Field(default="10/minute", min_length=3)
+    rate_limit_default: str = Field(default="120/minute", min_length=3)
+    rate_limit_enabled: bool = True
+
     # --- prescription history (additive storage) ----------------------------
     # Unset means nothing is persisted about a patient, which is the default.
     # Postgres keeps reference data; this holds only saved history.

@@ -32,6 +32,7 @@ from app.domain.ingest import (
     IngestError,
     UnsupportedMediaTypeError,
 )
+from app.web.ratelimit import default_limit, guide_limit, limiter
 
 _LOGGER = structlog.stdlib.get_logger("app.web.routes")
 
@@ -39,6 +40,20 @@ TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 router = APIRouter()
+
+
+def render_refusal(heading: str, message: str, steps: list[str]) -> str:
+    """Render the refusal page to a string.
+
+    Returned as a string rather than a response so pure-ASGI middleware, which has
+    no ``Request`` to hand, can serve the same accessible page. A refusal is still
+    a page a person reads: a plain-text body would have no ``lang`` attribute, no
+    landmarks and no disclaimer, and would fail the accessibility gate.
+    """
+    return templates.get_template("refused.html").render(
+        heading=heading, message=message, steps=steps
+    )
+
 
 _HTTP_BAD_REQUEST = 400
 _HTTP_NOT_FOUND = 404
@@ -81,6 +96,7 @@ def _sample_files(settings: Settings) -> list[dict[str, str]]:
 
 
 @router.get("/", response_class=HTMLResponse)
+@limiter.limit(default_limit)
 async def upload_form(request: Request) -> HTMLResponse:
     """Render the upload page."""
     services = get_services(request)
@@ -95,6 +111,7 @@ async def upload_form(request: Request) -> HTMLResponse:
 
 
 @router.get("/samples/{stem}", response_model=None)
+@limiter.limit(default_limit)
 async def download_sample(request: Request, stem: str) -> FileResponse | HTMLResponse:
     """Serve a committed sample prescription for trying the pipeline.
 
@@ -169,12 +186,16 @@ def _rejection_for(exc: Exception, settings: Settings) -> tuple[str, int]:
 
 
 @router.post("/guide", response_class=HTMLResponse)
+@limiter.limit(guide_limit)
 async def create_guide(request: Request, prescription: UploadFile) -> HTMLResponse:
     """Run one uploaded document through the pipeline and render the result."""
     services = get_services(request)
     settings = services.settings
 
-    payload = await prescription.read()
+    # Read at most one byte beyond the cap. Even with the size middleware in
+    # front, this keeps the handler itself from buffering an unbounded body if it
+    # is ever mounted without that middleware.
+    payload = await prescription.read(settings.max_upload_bytes + 1)
     try:
         result = await pipeline.run(
             payload,
