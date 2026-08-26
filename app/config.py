@@ -85,6 +85,13 @@ class Settings(BaseSettings):
     # Trigram similarity required by the RxNorm approximate-match tier.
     rxnorm_min_similarity: float = Field(default=0.85, ge=0.50, le=1.0)
 
+    # --- prescription history (additive storage) ----------------------------
+    # Unset means nothing is persisted about a patient, which is the default.
+    # Postgres keeps reference data; this holds only saved history.
+    mongodb_uri: SecretStr | None = None
+    mongodb_database: str = Field(default="rxplain", min_length=1)
+    mongodb_timeout_seconds: float = Field(default=15.0, gt=0.0, le=120.0)
+
     # --- transcription ------------------------------------------------------
     # When no key is set the fixture replayer is used, so the app still runs
     # offline. Setting a key switches the OCR seam to the hosted vision model.
