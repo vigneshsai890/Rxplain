@@ -68,6 +68,24 @@ async function horizontalOverflow(page) {
   );
 }
 
+/**
+ * Block until the stylesheet is loaded and applied.
+ *
+ * `domcontentloaded` fires before stylesheets finish. Against a local server the
+ * CSS arrives in about a millisecond so this never mattered; against a real
+ * deployment axe ran on an unstyled page and reported the browser's default link
+ * colour as a contrast failure. Auditing before the design is applied tests
+ * nothing, so every navigation waits for this.
+ */
+async function waitForStyles(page) {
+  await page.waitForFunction(
+    () =>
+      document.styleSheets.length > 0 &&
+      getComputedStyle(document.documentElement).getPropertyValue("--link").trim() !== "",
+    { timeout: 15000 },
+  );
+}
+
 /** Run axe against the page's current document. */
 async function audit(page, label) {
   const overflow = await horizontalOverflow(page);
@@ -96,13 +114,14 @@ async function audit(page, label) {
 
 /** Submit a file through the upload form and audit the resulting page. */
 async function submitAndAudit(page, filePath, label) {
-  await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${BASE_URL}/`, { waitUntil: "load" });
   const input = await page.waitForSelector("#prescription");
   await input.uploadFile(filePath);
   await Promise.all([
-    page.waitForNavigation({ waitUntil: "domcontentloaded" }),
+    page.waitForNavigation({ waitUntil: "load" }),
     page.click('button[type="submit"]'),
   ]);
+  await waitForStyles(page);
   return audit(page, label);
 }
 
@@ -125,7 +144,8 @@ try {
     });
     console.log(`\n--- ${viewport.name} ---`);
 
-    await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${BASE_URL}/`, { waitUntil: "load" });
+    await waitForStyles(page);
     total += await audit(page, "upload page");
 
     total += await submitAndAudit(
