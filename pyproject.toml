@@ -140,7 +140,13 @@ minversion = "9.0"
 addopts = "-q --strict-markers --strict-config"
 testpaths = ["tests"]
 pythonpath = ["."]
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # pymongo keeps background monitor sockets that are not always reaped
+    # synchronously when the client closes, which surfaces as an unraisable
+    # ResourceWarning after the test that used them has already passed.
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 # --------------------------------------------------------------------------- #
 # coverage
