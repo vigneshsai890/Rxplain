@@ -1,5 +1,16 @@
 # RxPlain
 
+[![CI](https://github.com/vigneshsai890/Rxplain/actions/workflows/ci.yml/badge.svg)](https://github.com/vigneshsai890/Rxplain/actions/workflows/ci.yml)
+![tests](https://img.shields.io/badge/tests-444%20passing-brightgreen)
+![coverage](https://img.shields.io/badge/safety%20coverage-98%25-brightgreen)
+![mutation](https://img.shields.io/badge/mutation%20kill%20rate-179%2F179-brightgreen)
+![axe](https://img.shields.io/badge/axe--core%20WCAG%202.1%20AA-0%20violations-brightgreen)
+![mypy](https://img.shields.io/badge/mypy-strict-blue)
+![python](https://img.shields.io/badge/python-3.12-blue)
+![licence](https://img.shields.io/badge/licence-MIT-blue)
+
+**Live demo: <https://rxplain-eight.vercel.app>**
+
 Reads a prescription and explains it in plain language — without ever inventing a
 medical fact.
 
