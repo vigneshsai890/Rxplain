@@ -7,17 +7,23 @@
       "use": "@vercel/python",
       "config": {
         "runtime": "python3.12",
-        "maxLambdaSize": "50mb"
+        "maxLambdaSize": "50mb",
+        "includeFiles": [
+          "app/web/templates/**",
+          "app/web/static/**",
+          "tests/golden/ocr/**",
+          "tests/golden/prescriptions/**",
+          "migrations/seed/**"
+        ]
       }
     }
   ],
-  "routes": [{ "src": "/(.*)", "dest": "api/index.py" }],
-  "functions": {
-    "api/index.py": {
-      "memory": 1024,
-      "maxDuration": 60
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
     }
-  },
+  ],
   "env": {
     "STORAGE_BACKEND": "memory",
     "OCR_FIXTURE_DIR": "tests/golden/ocr",

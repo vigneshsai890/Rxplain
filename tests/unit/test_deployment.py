@@ -41,10 +41,35 @@ def test_vercel_config_routes_everything_to_the_app() -> None:
     assert config["routes"] == [{"src": "/(.*)", "dest": "api/index.py"}]
 
 
-def test_vercel_duration_covers_a_cold_transcription() -> None:
-    """A cold vision call measured 46.7s, so the ceiling must exceed that."""
+def test_vercel_config_has_no_builds_functions_conflict() -> None:
+    """Vercel rejects a config declaring both, so only one may be present."""
     config = json.loads(VERCEL_JSON.read_text(encoding="utf-8"))
-    assert config["functions"]["api/index.py"]["maxDuration"] >= 60
+    assert not ("builds" in config and "functions" in config)
+
+
+def test_runtime_data_is_bundled() -> None:
+    """The Python builder bundles imports, not data files read at runtime.
+
+    Templates, static assets, OCR fixtures and the RxNorm seed are all opened at
+    request time, so each must be declared or the deployment builds and then 500s.
+    """
+    config = json.loads(VERCEL_JSON.read_text(encoding="utf-8"))
+    included = config["builds"][0]["config"]["includeFiles"]
+    for required in (
+        "app/web/templates/**",
+        "app/web/static/**",
+        "tests/golden/ocr/**",
+        "tests/golden/prescriptions/**",
+        "migrations/seed/**",
+    ):
+        assert required in included
+
+
+def test_the_entrypoint_documents_the_duration_constraint() -> None:
+    """A cold vision call measured 46.7s against a 60s ceiling; that is recorded."""
+    body = ENTRYPOINT.read_text(encoding="utf-8")
+    assert "46.7s" in body
+    assert "60s" in body
 
 
 def test_vercel_data_paths_are_relative_so_they_resolve_in_the_bundle() -> None:

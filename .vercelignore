@@ -1,0 +1,14 @@
+# Keep the deployment bundle small: only runtime data is needed.
+.venv/
+node_modules/
+tools/
+mutants/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+tests/unit/
+tests/integration/
+tests/golden/resolution/
+.github/
+docker-compose.yml
+Dockerfile
