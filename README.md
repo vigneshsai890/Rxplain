@@ -1,3 +1,45 @@
+<div align="center">
+
+<img src="docs/architecture.svg" alt="RxPlain architecture map" width="100%" />
+
+</div>
+
+# RxPlain
+
+> Safety-first prescription understanding with explicit verification gates.
+
+A Python web and data pipeline organized around ingestion, medication resolution, safety checks, history and user-facing results.
+
+<div align="center">
+
+`Python · FastAPI · PostgreSQL-compatible persistence · web templates` &nbsp;·&nbsp; `Prescription upload → OCR / resolution → safety decision → result`
+
+</div>
+
+## `01 / SYSTEM CARD`
+
+- **Primary boundary:** `web ingress → domain pipeline → external medication adapters`
+- **Documentation stance:** architecture and presentation only; application source is intentionally untouched.
+- **Visual language:** Y2K terminal grid, brutalist labels, maximalist contrast, readable static SVG fallback.
+
+## `02 / ARCHITECTURE`
+
+The map above is a compact view of the repository's visible runtime boundary. It is designed to answer three questions quickly: where input enters, where policy or domain logic lives, and where external side effects leave the system.
+
+![Architecture map for RxPlain](docs/architecture.svg)
+
+## `03 / DESIGN NOTES`
+
+- The source tree separates adapters, domain pipeline, safety gates, web middleware and tests.
+- Existing README quality and test badges are retained as project documentation, not re-verified here.
+
+This upgrade adds documentation assets only. It does not change source files, dependency manifests, tests, workflows or runtime configuration.
+
+## `04 / EXISTING PROJECT DOCUMENTATION`
+
+<details open>
+<summary>Read the original project notes</summary>
+
 # RxPlain
 
 [![CI](https://github.com/vigneshsai890/Rxplain/actions/workflows/ci.yml/badge.svg)](https://github.com/vigneshsai890/Rxplain/actions/workflows/ci.yml)
@@ -220,3 +262,6 @@ RxPlain repeats what is on a prescription and what the official drug label says.
 It does not give medical advice and cannot say whether a medicine is right for
 anyone. It never suggests changing, skipping or replacing a dose. Always follow
 your own doctor or pharmacist.
+
+</details>
+
